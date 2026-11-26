@@ -1,0 +1,18 @@
+# Allow members of the 'plugdev' or 'sudo' group (default on Ubuntu & Linux Mint)
+# to adjust ASUS battery charge thresholds, thermal profiles, keyboard LEDs, and Fn Lock
+# without repeated Polkit password prompts.
+
+# Battery Health Charging threshold (asus-nb-wmi / power_supply)
+ACTION=="add|change", SUBSYSTEM=="power_supply", ATTR{type}=="Battery", TEST=="charge_control_end_threshold", RUN+="/bin/chgrp plugdev /sys%p/charge_control_end_threshold", RUN+="/bin/chmod 0664 /sys%p/charge_control_end_threshold"
+
+# ASUS WMI platform attributes (fan thermal policy, fn_lock, touchpad, panel_od, dgpu_disable)
+ACTION=="add|change", SUBSYSTEM=="platform", KERNEL=="asus-nb-wmi", RUN+="/bin/sh -c 'for f in throttle_thermal_policy fn_lock touchpad panel_od dgpu_disable; do [ -e /sys/devices/platform/asus-nb-wmi/$f ] && chgrp plugdev /sys/devices/platform/asus-nb-wmi/$f && chmod 0664 /sys/devices/platform/asus-nb-wmi/$f; done'"
+
+# ACPI Platform Profile (Whisper / Balanced / Performance)
+ACTION=="add|change", SUBSYSTEM=="acpi", TEST=="/sys/firmware/acpi/platform_profile", RUN+="/bin/chgrp plugdev /sys/firmware/acpi/platform_profile", RUN+="/bin/chmod 0664 /sys/firmware/acpi/platform_profile"
+
+# ASUS Keyboard Backlight LED
+ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="asus::kbd_backlight", RUN+="/bin/chgrp plugdev /sys%p/brightness", RUN+="/bin/chmod 0664 /sys%p/brightness"
+
+# Screen Backlight brightness
+ACTION=="add|change", SUBSYSTEM=="backlight", RUN+="/bin/chgrp video /sys%p/brightness", RUN+="/bin/chmod 0664 /sys%p/brightness"

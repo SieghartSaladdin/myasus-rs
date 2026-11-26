@@ -1,0 +1,24 @@
+[package]
+name = "myasus-rs"
+version = "0.1.0"
+edition = "2021"
+description = "Open-source Rust Linux/cross-platform desktop utility inspired by MyASUS for Ubuntu & Linux Mint"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+eframe = { version = "0.29", default-features = true }
+egui = "0.29"
+sysinfo = "0.33"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4", features = ["derive"] }
+directories = "5"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

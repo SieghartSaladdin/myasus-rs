@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=MyASUS (Rust)
+Comment=ASUS laptop hardware control, telemetry & diagnostics for Ubuntu and Linux Mint
+Exec=/usr/local/bin/myasus-rs
+Icon=utilities-system-monitor
+Terminal=false
+Type=Application
+Categories=System;Settings;HardwareSettings;Monitor;
+Keywords=asus;vivobook;zenbook;battery;fan;thermal;diagnostics;myasus;
+StartupNotify=true

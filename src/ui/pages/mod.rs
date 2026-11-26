@@ -1,0 +1,11 @@
+pub mod device_settings;
+pub mod device_settings_av;
+pub mod devices;
+pub mod diagnosis;
+pub mod home;
+pub mod interactive_diag;
+pub mod messages;
+pub mod settings;
+pub mod support;
+pub mod system_info;
+pub mod updates;

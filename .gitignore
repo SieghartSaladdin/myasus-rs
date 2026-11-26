@@ -1,0 +1,15 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Exported runtime logs & support bundles
+*.log
+myasus-rs-support-report_*.json
+screenshot_*.png
