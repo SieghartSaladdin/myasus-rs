@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=MyASUS (Rust) - OLED Care Daemon
+Comment=Restores OLED Flicker-Free Dimming, guards gamma, and runs periodic Pixel Shift on login
+Exec=/usr/local/bin/myasus-rs oled-daemon --delay 5
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=3

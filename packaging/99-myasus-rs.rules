@@ -15,4 +15,4 @@ ACTION=="add|change", SUBSYSTEM=="acpi", TEST=="/sys/firmware/acpi/platform_prof
 ACTION=="add|change", SUBSYSTEM=="leds", KERNEL=="asus::kbd_backlight", RUN+="/bin/chgrp plugdev /sys%p/brightness", RUN+="/bin/chmod 0664 /sys%p/brightness"
 
 # Screen Backlight brightness
-ACTION=="add|change", SUBSYSTEM=="backlight", RUN+="/bin/chgrp video /sys%p/brightness", RUN+="/bin/chmod 0664 /sys%p/brightness"
+ACTION=="add|change", SUBSYSTEM=="backlight", RUN+="/bin/chgrp plugdev /sys%p/brightness", RUN+="/bin/chmod 0664 /sys%p/brightness"

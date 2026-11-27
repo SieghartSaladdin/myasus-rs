@@ -1,161 +1,215 @@
-use egui::{Color32, FontId, Margin, Rect, Rounding, Sense, Stroke, Ui, Vec2};
+use rune::tok::Family;
+use rune::{Color, El, TextStyle, col, el, row, text};
+use rune_kit::{Kit, PaletteSeed};
 
-pub const BG_WINDOW: Color32 = Color32::from_rgb(18, 19, 23);
-pub const BG_SIDEBAR: Color32 = Color32::from_rgb(27, 29, 34);
-pub const BG_CARD: Color32 = Color32::from_rgb(33, 35, 41);
-pub const BG_CARD_ALT: Color32 = Color32::from_rgb(41, 44, 52);
-pub const ASUS_BLUE: Color32 = Color32::from_rgb(0, 120, 240);
-pub const TEXT_PRIMARY: Color32 = Color32::from_rgb(242, 244, 248);
-pub const TEXT_MUTED: Color32 = Color32::from_rgb(154, 160, 172);
-pub const BORDER_SUBTLE: Color32 = Color32::from_rgb(54, 58, 68);
-pub const STATUS_OK: Color32 = Color32::from_rgb(46, 204, 113);
-pub const STATUS_WARN: Color32 = Color32::from_rgb(243, 156, 18);
-pub const STATUS_DANGER: Color32 = Color32::from_rgb(235, 87, 87);
-pub const OLED_NOTICE_RED: Color32 = Color32::from_rgb(224, 108, 98);
-
-pub fn apply_myasus_theme(ctx: &egui::Context) {
-    let mut visuals = egui::Visuals::dark();
-    visuals.window_fill = BG_WINDOW;
-    visuals.panel_fill = BG_WINDOW;
-    visuals.faint_bg_color = BG_CARD;
-    visuals.extreme_bg_color = Color32::from_rgb(12, 13, 16);
-    visuals.selection.bg_fill = ASUS_BLUE;
-    visuals.selection.stroke = Stroke::new(1.0_f32, TEXT_PRIMARY);
-
-    visuals.widgets.noninteractive.bg_fill = BG_CARD;
-    visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, TEXT_PRIMARY);
-    visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0_f32, BORDER_SUBTLE);
-
-    visuals.widgets.inactive.bg_fill = BG_CARD_ALT;
-    visuals.widgets.inactive.fg_stroke = Stroke::new(1.0_f32, TEXT_PRIMARY);
-    visuals.widgets.inactive.bg_stroke = Stroke::new(1.0_f32, BORDER_SUBTLE);
-    visuals.widgets.inactive.rounding = Rounding::same(6.0);
-
-    visuals.widgets.hovered.bg_fill = Color32::from_rgb(52, 57, 68);
-    visuals.widgets.hovered.fg_stroke = Stroke::new(1.0_f32, TEXT_PRIMARY);
-    visuals.widgets.hovered.bg_stroke = Stroke::new(1.0_f32, ASUS_BLUE);
-    visuals.widgets.hovered.rounding = Rounding::same(6.0);
-
-    visuals.widgets.active.bg_fill = ASUS_BLUE;
-    visuals.widgets.active.fg_stroke = Stroke::new(1.0_f32, Color32::WHITE);
-    visuals.widgets.active.rounding = Rounding::same(6.0);
-
-    ctx.set_visuals(visuals);
+/// Converts an 8-bit sRGB color into Rune's linear sRGB `Color`.
+pub fn rgb(r: u8, g: u8, b: u8) -> Color {
+    Color {
+        r: rune::theme::srgb_decode(r as f32 / 255.0),
+        g: rune::theme::srgb_decode(g as f32 / 255.0),
+        b: rune::theme::srgb_decode(b as f32 / 255.0),
+        a: 1.0,
+    }
 }
 
-pub fn card_frame() -> egui::Frame {
-    egui::Frame::none()
-        .fill(BG_CARD)
-        .stroke(Stroke::new(1.0_f32, BORDER_SUBTLE))
-        .rounding(Rounding::same(8.0))
-        .inner_margin(Margin::same(14.0))
+// True OLED-friendly obsidian palette (deep blacks save OLED power & reduce burn-in)
+pub fn asus_blue() -> Color {
+    rgb(22, 132, 255)
 }
 
-/// Renders a telemetry tile with MyASUS's signature 2px electric-blue top border.
-pub fn blue_top_card(ui: &mut Ui, min_height: f32, add_contents: impl FnOnce(&mut Ui)) {
-    let response = egui::Frame::none()
-        .fill(BG_CARD)
-        .stroke(Stroke::new(1.0_f32, BORDER_SUBTLE))
-        .rounding(Rounding::same(6.0))
-        .inner_margin(Margin::symmetric(16.0, 14.0))
-        .show(ui, |ui| {
-            ui.set_min_height(min_height);
-            ui.set_width(ui.available_width());
-            add_contents(ui);
-        });
-
-    let rect = response.response.rect;
-    let bar = Rect::from_min_max(rect.left_top(), egui::pos2(rect.right(), rect.top() + 3.0));
-    ui.painter().rect_filled(bar, 2.0, ASUS_BLUE);
+pub fn oled_teal() -> Color {
+    rgb(32, 206, 166)
 }
 
-/// MyASUS Device Settings signature card with a 3px electric-blue vertical left accent stripe.
-pub fn left_blue_card(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) {
-    let response = egui::Frame::none()
-        .fill(BG_CARD)
-        .stroke(Stroke::new(1.0_f32, BORDER_SUBTLE))
-        .rounding(Rounding::same(4.0))
-        .inner_margin(Margin {
-            left: 24.0,
-            right: 20.0,
-            top: 18.0,
-            bottom: 18.0,
-        })
-        .show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            add_contents(ui);
-        });
-
-    let rect = response.response.rect;
-    let bar = Rect::from_min_max(rect.left_top(), egui::pos2(rect.left() + 3.0, rect.bottom()));
-    ui.painter().rect_filled(bar, 1.0, ASUS_BLUE);
+pub fn bg_canvas() -> Color {
+    rgb(11, 13, 18)
 }
 
-pub fn toggle_switch_labeled(ui: &mut Ui, on: &mut bool) -> egui::Response {
-    let mut resp = None;
-    ui.horizontal(|ui| {
-        resp = Some(toggle_switch(ui, on));
-        ui.add_space(6.0);
-        ui.label(
-            egui::RichText::new(if *on { "On" } else { "Off" })
-                .color(TEXT_PRIMARY)
-                .size(13.0),
-        );
+pub fn bg_sidebar() -> Color {
+    rgb(15, 18, 24)
+}
+
+pub fn bg_card() -> Color {
+    rgb(20, 24, 32)
+}
+
+pub fn bg_elevated() -> Color {
+    rgb(28, 33, 44)
+}
+
+pub fn border_subtle() -> Color {
+    rgb(42, 48, 62)
+}
+
+pub fn text_primary() -> Color {
+    rgb(240, 244, 250)
+}
+
+pub fn text_muted() -> Color {
+    rgb(146, 156, 174)
+}
+
+pub fn status_ok() -> Color {
+    rgb(46, 212, 128)
+}
+
+pub fn status_warn() -> Color {
+    rgb(245, 182, 66)
+}
+
+pub fn status_danger() -> Color {
+    rgb(238, 96, 96)
+}
+
+pub fn oled_notice_red() -> Color {
+    rgb(232, 114, 104)
+}
+
+/// Builds the OLED-native dark `rune_kit::Kit`.
+pub fn myasus_kit() -> Kit {
+    let mut k = Kit::from_palette(PaletteSeed {
+        bg: bg_canvas(),
+        fg: text_primary(),
+        accent: asus_blue(),
     });
-    resp.unwrap()
+    k.c.bg_accent = asus_blue();
+    k.c.border_focus = asus_blue();
+    k.radius.sm = 6.0;
+    k.radius.md = 8.0;
+    k.radius.lg = 12.0;
+    k
 }
 
-/// Outlined pill button matching MyASUS's "One-click diagnosis" / "Check update items" buttons.
-pub fn pill_button(ui: &mut Ui, label: &str, filled: bool) -> egui::Response {
-    let fill = if filled { ASUS_BLUE } else { Color32::TRANSPARENT };
-    let stroke = Stroke::new(1.3_f32, ASUS_BLUE);
-    let text_color = if filled { Color32::WHITE } else { Color32::from_rgb(100, 175, 255) };
-
-    let btn = egui::Button::new(egui::RichText::new(label).color(text_color).size(13.0))
-        .fill(fill)
-        .stroke(stroke)
-        .rounding(Rounding::same(18.0))
-        .min_size(Vec2::new(132.0, 32.0));
-    ui.add(btn)
-}
-
-pub fn status_badge(ui: &mut Ui, text: &str, color: Color32) {
-    let bg = Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 36);
-    egui::Frame::none()
-        .fill(bg)
-        .stroke(Stroke::new(1.0_f32, color))
-        .rounding(Rounding::same(10.0))
-        .inner_margin(Margin::symmetric(8.0, 2.0))
-        .show(ui, |ui| {
-            ui.label(egui::RichText::new(text).color(color).size(11.5).strong());
-        });
-}
-
-pub fn toggle_switch(ui: &mut Ui, on: &mut bool) -> egui::Response {
-    let desired_size = Vec2::new(42.0, 22.0);
-    let (rect, mut response) = ui.allocate_exact_size(desired_size, Sense::click());
-    if response.clicked() {
-        *on = !*on;
-        response.mark_changed();
+pub fn font_style(size: f32, weight: f32) -> TextStyle {
+    TextStyle {
+        line_height: size * 1.35,
+        ..TextStyle::new(size, weight)
     }
-    if ui.is_rect_visible(rect) {
-        let how_on = ui.ctx().animate_bool_responsive(response.id, *on);
-        let radius = rect.height() * 0.5;
-        let bg = if *on { ASUS_BLUE } else { Color32::from_rgb(72, 76, 88) };
-        ui.painter().rect_filled(rect, radius, bg);
-        let cx = egui::lerp((rect.left() + radius)..=(rect.right() - radius), how_on);
-        ui.painter().circle_filled(egui::pos2(cx, rect.center().y), radius - 3.0, Color32::WHITE);
-    }
-    response
 }
 
-pub fn section_heading(ui: &mut Ui, title: &str, subtitle: &str) {
-    ui.label(
-        egui::RichText::new(title)
-            .font(FontId::proportional(22.0))
-            .color(TEXT_PRIMARY)
-            .strong(),
+pub fn font_mono(size: f32, weight: f32) -> TextStyle {
+    TextStyle {
+        family: Family::Mono,
+        line_height: size * 1.35,
+        ..TextStyle::new(size, weight)
+    }
+}
+
+pub fn page_title(title: impl Into<String>, subtitle: impl Into<String>) -> El {
+    col()
+        .gap(3.0)
+        .child(
+            text(title.into())
+                .font(font_style(22.0, 700.0))
+                .color(text_primary()),
+        )
+        .child(
+            text(subtitle.into())
+                .font(font_style(12.5, 420.0))
+                .color(text_muted()),
+        )
+}
+
+/// Accent-bordered feature card with custom accent color (ASUS Blue or OLED Teal).
+pub fn accent_card(accent: Color, children: Vec<El>) -> El {
+    let bar = el().w(3.0).radius(2.0).fill(accent);
+    let body = col()
+        .grow(1.0)
+        .shrink()
+        .gap(11.0)
+        .px(16.0)
+        .py(14.0)
+        .children(children);
+
+    row()
+        .w_full()
+        .items_stretch()
+        .radius(10.0)
+        .fill(bg_card())
+        .border(1.0, border_subtle())
+        .child(bar)
+        .child(body)
+}
+
+pub fn left_blue_card(children: Vec<El>) -> El {
+    accent_card(asus_blue(), children)
+}
+
+pub fn oled_teal_card(children: Vec<El>) -> El {
+    accent_card(oled_teal(), children)
+}
+
+pub fn surface_card(children: Vec<El>) -> El {
+    col()
+        .w_full()
+        .gap(10.0)
+        .padding(15.0)
+        .radius(10.0)
+        .fill(bg_card())
+        .border(1.0, border_subtle())
+        .children(children)
+}
+
+pub fn card_heading(title: impl Into<String>, subtitle: Option<&str>) -> El {
+    let mut c = col().gap(2.0).child(
+        text(title.into())
+            .font(font_style(15.0, 680.0))
+            .color(text_primary()),
     );
-    ui.label(egui::RichText::new(subtitle).color(TEXT_MUTED).size(13.0));
-    ui.add_space(10.0);
+    if let Some(sub) = subtitle {
+        c = c.child(
+            text(sub.to_string())
+                .font(font_style(12.0, 400.0))
+                .color(text_muted())
+                .wrap()
+                .w_full(),
+        );
+    }
+    c
+}
+
+pub fn status_pill(label: impl Into<String>, color: Color) -> El {
+    row()
+        .center_y()
+        .gap(6.0)
+        .px(9.0)
+        .py(3.5)
+        .radius(999.0)
+        .fill(color.alpha(0.15))
+        .border(1.0, color.alpha(0.45))
+        .child(el().size(6.0, 6.0).radius(3.0).fill(color))
+        .child(text(label.into()).font(font_style(11.0, 620.0)).color(color))
+}
+
+pub fn meter_bar(frac: f32, color: Color) -> El {
+    let clamped = frac.clamp(0.0, 1.0);
+    el()
+        .w_full()
+        .h(7.0)
+        .radius(4.0)
+        .fill(bg_elevated())
+        .child(el().w_frac(clamped).h_full().radius(4.0).fill(color))
+}
+
+pub fn kv_row(label: impl Into<String>, value: impl Into<String>) -> El {
+    row()
+        .w_full()
+        .center_y()
+        .justify_between()
+        .py(6.0)
+        .border_sides([0.0, 0.0, 1.0, 0.0], border_subtle().alpha(0.5))
+        .child(
+            text(label.into())
+                .font(font_style(12.5, 500.0))
+                .color(text_muted()),
+        )
+        .child(
+            text(value.into())
+                .font(font_style(12.5, 580.0))
+                .color(text_primary()),
+        )
+}
+
+pub fn divider() -> El {
+    el().w_full().h(1.0).fill(border_subtle().alpha(0.75))
 }

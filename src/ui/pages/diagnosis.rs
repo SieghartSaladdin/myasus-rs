@@ -1,141 +1,373 @@
-use egui::{Color32, RichText, Ui};
+use rune::{Color, El, col, row, text};
+use rune_kit::{Button, ButtonVariant, Kit, SegmentedControl};
 
-use crate::models::{
-    diagnosis::{DiagnosisReport, DiagnosticCategory, DiagnosticStatus},
-    peripherals::ProcessEntry,
-};
-use crate::ui::pages::interactive_diag::{render_interactive_tests, InteractiveTestState};
+use crate::models::diagnosis::DiagnosticStatus;
+use crate::ui::app::MyAsusState;
 use crate::ui::theme::{
-    card_frame, pill_button, section_heading, status_badge, ASUS_BLUE, STATUS_DANGER, STATUS_OK,
-    STATUS_WARN, TEXT_MUTED, TEXT_PRIMARY,
+    asus_blue, card_heading, font_mono, font_style, left_blue_card, oled_teal_card, page_title,
+    rgb, status_danger, status_ok, status_pill, status_warn, surface_card, text_muted,
+    text_primary,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DiagnosisTab {
-    AutomatedChecks,
-    InteractiveSuite,
+pub enum DiagSubTab {
+    HardwareCheckup,
+    OledDisplayTests,
+    Updates,
 }
 
-pub enum DiagnosisAction {
-    RunAll,
-    RunCategory(DiagnosticCategory),
-    RefreshProcesses,
+impl DiagSubTab {
+    fn index(self) -> usize {
+        match self {
+            Self::HardwareCheckup => 0,
+            Self::OledDisplayTests => 1,
+            Self::Updates => 2,
+        }
+    }
+
+    fn from_index(i: usize) -> Self {
+        match i {
+            1 => Self::OledDisplayTests,
+            2 => Self::Updates,
+            _ => Self::HardwareCheckup,
+        }
+    }
 }
 
-pub fn render_diagnosis(
-    ui: &mut Ui,
-    tab: &mut DiagnosisTab,
-    report: &DiagnosisReport,
-    interactive: &mut InteractiveTestState,
-    top_processes: &[ProcessEntry],
-) -> Option<DiagnosisAction> {
-    let mut action = None;
+#[derive(Debug, Clone, Default)]
+pub struct InteractiveTestState {
+    pub display_test_step: Option<usize>,
+    pub speaker_test_note: Option<String>,
+}
 
-    section_heading(
-        ui,
-        "System Diagnosis",
-        "Automated 6-subsystem checkup + Interactive Display, Keyboard, Touchpad & Process Diagnostics",
-    );
+impl InteractiveTestState {
+    const COLORS: [(&'static str, (u8, u8, u8)); 6] = [
+        ("Pure Red (Subpixel & Burn-In)", (255, 0, 0)),
+        ("Pure Green (Subpixel & Burn-In)", (0, 255, 0)),
+        ("Pure Blue (OLED Blue Subpixel Wear)", (0, 0, 255)),
+        ("5% Dark Gray (OLED Banding / Uniformity)", (14, 14, 14)),
+        ("Pure White (Uniformity Check)", (255, 255, 255)),
+        ("Pure Black (OLED True-Black Check)", (0, 0, 0)),
+    ];
 
-    ui.horizontal(|ui| {
-        for (t, label) in [
-            (DiagnosisTab::AutomatedChecks, "Automated Hardware Checkup"),
-            (DiagnosisTab::InteractiveSuite, "Interactive Self-Test & Processes"),
-        ] {
-            let selected = *tab == t;
-            let btn = egui::Button::new(
-                RichText::new(label).color(if selected { Color32::WHITE } else { TEXT_MUTED }),
+    pub fn active_display_test_color(&self) -> Option<Color> {
+        let idx = self.display_test_step?;
+        let (_, (r, g, b)) = *Self::COLORS.get(idx)?;
+        Some(rgb(r, g, b))
+    }
+
+    pub fn active_color_name(&self) -> &'static str {
+        self.display_test_step
+            .and_then(|i| Self::COLORS.get(i))
+            .map(|(n, _)| *n)
+            .unwrap_or("")
+    }
+
+    pub fn advance_display_test(&mut self) {
+        match self.display_test_step {
+            None => self.display_test_step = Some(0),
+            Some(i) if i + 1 < Self::COLORS.len() => self.display_test_step = Some(i + 1),
+            Some(_) => self.display_test_step = None,
+        }
+    }
+}
+
+pub fn render_diagnosis_updates(s: &MyAsusState, k: &Kit) -> El {
+    let header = row()
+        .w_full()
+        .center_y()
+        .justify_between()
+        .child(page_title(
+            "Diagnosis & Updates",
+            "Hardware health checkup, OLED uniformity/burn-in inspection, and LVFS/APT updates.",
+        ))
+        .child(
+            row()
+                .gap(8.0)
+                .child(
+                    Button::new("Run Diagnosis")
+                        .variant(ButtonVariant::Contrast)
+                        .on_press(|s: &mut MyAsusState| {
+                            s.diag_tab = DiagSubTab::HardwareCheckup;
+                            s.run_diagnosis_now();
+                        })
+                        .build(k),
+                )
+                .child(
+                    Button::new("Check Updates")
+                        .variant(ButtonVariant::Outline)
+                        .on_press(|s: &mut MyAsusState| {
+                            s.diag_tab = DiagSubTab::Updates;
+                            s.check_updates_now();
+                        })
+                        .build(k),
+                ),
+        );
+
+    let tabs = SegmentedControl::new(
+        &[
+            "Hardware Checkup",
+            "OLED Uniformity Test",
+            "Firmware & APT Updates",
+        ],
+        Some(s.diag_tab.index()),
+    )
+    .width(None)
+    .on_pick(|s: &mut MyAsusState, idx, _| {
+        s.diag_tab = DiagSubTab::from_index(idx);
+    })
+    .build(k);
+
+    let body = match s.diag_tab {
+        DiagSubTab::HardwareCheckup => render_checkup(s, k),
+        DiagSubTab::OledDisplayTests => render_oled_tests(s, k),
+        DiagSubTab::Updates => render_updates(s, k),
+    };
+
+    col()
+        .w_full()
+        .gap(14.0)
+        .child(header)
+        .child(tabs)
+        .child(body)
+}
+
+fn render_checkup(s: &MyAsusState, k: &Kit) -> El {
+    let Some(report) = &s.diagnosis else {
+        return surface_card(vec![
+            card_heading(
+                "Ready for 6-Category Linux Hardware Checkup",
+                Some("Inspects Battery & Power, Thermal & Fans, RAM, NVMe/SSD, Wi-Fi/BT, and asus-nb-wmi kernel driver."),
+            ),
+            Button::new("Start Diagnosis")
+                .variant(ButtonVariant::Contrast)
+                .on_press(|s: &mut MyAsusState| s.run_diagnosis_now())
+                .build(k),
+        ]);
+    };
+
+    let summary = row()
+        .gap(10.0)
+        .center_y()
+        .child(status_pill(
+            format!("{} Healthy", report.count_by_status(DiagnosticStatus::Passed)),
+            status_ok(),
+        ))
+        .child(status_pill(
+            format!(
+                "{} Attention",
+                report.count_by_status(DiagnosticStatus::Warning)
+            ),
+            status_warn(),
+        ))
+        .child(status_pill(
+            format!("{} Issues", report.count_by_status(DiagnosticStatus::Issue)),
+            status_danger(),
+        ))
+        .child(
+            text(format!("Run: {}", report.timestamp))
+                .font(font_mono(11.5, 450.0))
+                .color(text_muted()),
+        );
+
+    let mut list = col().w_full().gap(10.0).child(summary);
+    for item in &report.items {
+        let color = match item.status {
+            DiagnosticStatus::Passed => status_ok(),
+            DiagnosticStatus::Warning => status_warn(),
+            DiagnosticStatus::Issue => status_danger(),
+            DiagnosticStatus::Skipped => asus_blue(),
+        };
+        let mut children = vec![
+            row()
+                .w_full()
+                .center_y()
+                .justify_between()
+                .child(
+                    text(item.category.title())
+                        .font(font_style(14.0, 650.0))
+                        .color(text_primary()),
+                )
+                .child(status_pill(item.status.label(), color)),
+            text(item.summary.clone())
+                .font(font_style(12.5, 500.0))
+                .color(text_primary())
+                .wrap()
+                .w_full(),
+        ];
+        for d in &item.details {
+            children.push(
+                text(format!("• {d}"))
+                    .font(font_style(11.5, 400.0))
+                    .color(text_muted())
+                    .wrap()
+                    .w_full(),
+            );
+        }
+        if let Some(rec) = &item.recommendation {
+            children.push(
+                text(format!("Tip: {rec}"))
+                    .font(font_style(11.5, 550.0))
+                    .color(status_warn())
+                    .wrap()
+                    .w_full(),
+            );
+        }
+        list = list.child(left_blue_card(children));
+    }
+    list
+}
+
+fn render_oled_tests(s: &MyAsusState, k: &Kit) -> El {
+    let oled_test_card = oled_teal_card(vec![
+        card_heading(
+            "OLED Burn-In, Subpixel & 5% Gray Uniformity Check",
+            Some("Cycles Red, Green, Blue, 5% Dark Gray (for OLED vertical banding), White, and True Black full-screen frames."),
+        ),
+        row()
+            .gap(10.0)
+            .child(
+                Button::new("Start Full-Screen Pattern Check")
+                    .variant(ButtonVariant::Contrast)
+                    .on_press(|s: &mut MyAsusState| s.interactive_diag.display_test_step = Some(0))
+                    .build(k),
             )
-            .fill(if selected { ASUS_BLUE } else { Color32::from_rgb(35, 38, 46) });
-            if ui.add(btn).clicked() {
-                *tab = t;
-            }
-        }
-    });
-    ui.add_space(12.0);
+            .child(
+                Button::new("Run 1-Min Pixel Refresh Sweep")
+                    .variant(ButtonVariant::Neutral)
+                    .on_press(|s: &mut MyAsusState| {
+                        s.screensaver.start_pixel_refresh(60.0, s.current_clock);
+                    })
+                    .build(k),
+            ),
+    ]);
 
-    if *tab == DiagnosisTab::InteractiveSuite {
-        if render_interactive_tests(ui, interactive, top_processes) {
-            action = Some(DiagnosisAction::RefreshProcesses);
-        }
-        return action;
-    }
-
-    card_frame().show(ui, |ui| {
-        ui.set_width(ui.available_width());
-        ui.horizontal(|ui| {
-            ui.vertical(|ui| {
-                ui.label(
-                    RichText::new("One-Click Hardware Diagnosis")
-                        .color(TEXT_PRIMARY)
-                        .strong()
-                        .size(16.0),
-                );
-                let ts = if report.timestamp.is_empty() {
-                    "Run a comprehensive check of all 6 subsystems.".to_string()
+    let mut speaker_children = vec![
+        card_heading(
+            "Stereo Speaker Sweep",
+            Some("Runs a quick 2-channel sine sweep via `speaker-test`."),
+        ),
+        Button::new("Run Stereo Test")
+            .variant(ButtonVariant::Outline)
+            .on_press(|s: &mut MyAsusState| {
+                let ok = std::process::Command::new("speaker-test")
+                    .args(["-c", "2", "-t", "sine", "-l", "1"])
+                    .spawn()
+                    .is_ok();
+                s.interactive_diag.speaker_test_note = Some(if ok {
+                    "Triggered 2-channel sine sweep via speaker-test.".into()
                 } else {
-                    format!(
-                        "Last run: {}  •  Healthy: {}  •  Attention: {}  •  Issues: {}",
-                        report.timestamp,
-                        report.count_by_status(DiagnosticStatus::Passed),
-                        report.count_by_status(DiagnosticStatus::Warning),
-                        report.count_by_status(DiagnosticStatus::Issue),
-                    )
-                };
-                ui.label(RichText::new(ts).color(TEXT_MUTED).size(12.5));
-            });
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if pill_button(ui, "Run All Checks", true).clicked() {
-                    action = Some(DiagnosisAction::RunAll);
-                }
-            });
-        });
-    });
-
-    ui.add_space(12.0);
-
-    for &category in DiagnosticCategory::all() {
-        let existing = report.items.iter().find(|i| i.category == category);
-        card_frame().show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            ui.horizontal(|ui| {
-                ui.label(RichText::new(category.title()).color(TEXT_PRIMARY).strong().size(14.5));
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.small_button("Check").clicked() {
-                        action = Some(DiagnosisAction::RunCategory(category));
-                    }
-                    if let Some(item) = existing {
-                        let color = match item.status {
-                            DiagnosticStatus::Passed => STATUS_OK,
-                            DiagnosticStatus::Warning => STATUS_WARN,
-                            DiagnosticStatus::Issue => STATUS_DANGER,
-                            DiagnosticStatus::Skipped => TEXT_MUTED,
-                        };
-                        status_badge(ui, item.status.label(), color);
-                    }
+                    "speaker-test not installed (install alsa-utils).".into()
                 });
-            });
-
-            if let Some(item) = existing {
-                ui.add_space(4.0);
-                ui.label(RichText::new(&item.summary).color(TEXT_PRIMARY).size(13.0));
-                for d in &item.details {
-                    ui.label(RichText::new(format!("• {d}")).color(TEXT_MUTED).size(12.0));
-                }
-                if let Some(rec) = &item.recommendation {
-                    ui.add_space(4.0);
-                    ui.label(
-                        RichText::new(format!("Tip: {rec}"))
-                            .color(STATUS_WARN)
-                            .size(12.0),
-                    );
-                }
-            } else {
-                ui.label(RichText::new("Not tested yet.").color(TEXT_MUTED).size(12.0));
-            }
-        });
-        ui.add_space(8.0);
+            })
+            .build(k),
+    ];
+    if let Some(note) = &s.interactive_diag.speaker_test_note {
+        speaker_children.push(
+            text(note.clone())
+                .font(font_style(12.0, 500.0))
+                .color(text_muted()),
+        );
     }
 
-    action
+    col()
+        .w_full()
+        .gap(12.0)
+        .child(oled_test_card)
+        .child(left_blue_card(speaker_children))
+}
+
+fn render_updates(s: &MyAsusState, k: &Kit) -> El {
+    let report = &s.updates;
+    let providers = row()
+        .gap(10.0)
+        .center_y()
+        .child(status_pill(
+            if report.fwupd_available {
+                "fwupdmgr Ready"
+            } else {
+                "fwupdmgr Unavailable"
+            },
+            if report.fwupd_available {
+                status_ok()
+            } else {
+                status_warn()
+            },
+        ))
+        .child(status_pill(
+            if report.apt_available {
+                "APT Ready"
+            } else {
+                "APT Unavailable"
+            },
+            if report.apt_available {
+                status_ok()
+            } else {
+                status_warn()
+            },
+        ))
+        .child(
+            text(if report.last_checked.is_empty() {
+                "Not checked yet".to_string()
+            } else {
+                format!("Checked: {}", report.last_checked)
+            })
+            .font(font_mono(11.5, 450.0))
+            .color(text_muted()),
+        );
+
+    let mut body = col().w_full().gap(10.0).child(providers);
+
+    if report.items.is_empty() {
+        body = body.child(surface_card(vec![
+            card_heading(
+                if report.last_checked.is_empty() {
+                    "Click 'Check Updates' to scan LVFS firmware & APT packages"
+                } else {
+                    "All checked packages & firmware are up to date"
+                },
+                None,
+            ),
+            Button::new("Scan Now")
+                .variant(ButtonVariant::Contrast)
+                .on_press(|s: &mut MyAsusState| s.check_updates_now())
+                .build(k),
+        ]));
+    } else {
+        for item in &report.items {
+            body = body.child(left_blue_card(vec![
+                row()
+                    .w_full()
+                    .center_y()
+                    .justify_between()
+                    .child(
+                        text(item.name.clone())
+                            .font(font_style(14.0, 650.0))
+                            .color(text_primary()),
+                    )
+                    .child(status_pill(
+                        if item.critical {
+                            "Critical"
+                        } else {
+                            item.source.label()
+                        },
+                        if item.critical {
+                            status_danger()
+                        } else {
+                            asus_blue()
+                        },
+                    )),
+                text(format!("{} → {}", item.current_version, item.available_version))
+                    .font(font_mono(12.0, 600.0))
+                    .color(status_ok()),
+                text(item.summary.clone())
+                    .font(font_style(12.0, 400.0))
+                    .color(text_muted())
+                    .wrap()
+                    .w_full(),
+            ]));
+        }
+    }
+
+    body
 }

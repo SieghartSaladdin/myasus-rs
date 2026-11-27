@@ -7,7 +7,7 @@ mod ui;
 use clap::Parser;
 
 use crate::cli::{run_cli_command, CliArgs};
-use crate::ui::{app::MyAsusApp, pages::device_settings::SettingsTab, sidebar::NavPage};
+use crate::ui::{app::run_rune_app, pages::oled_care::OledSubTab, sidebar::NavPage};
 
 fn main() {
     let args = CliArgs::parse();
@@ -19,42 +19,28 @@ fn main() {
         return;
     }
 
-    let (start_page, start_tab) = match args.page.as_deref() {
-        Some("device-settings") | Some("power") => {
-            (NavPage::DeviceSettings, SettingsTab::PowerAndPerformance)
+    let (start_page, start_oled_tab) = match args.page.as_deref() {
+        Some("oled") | Some("audio-visual") | Some("dimming") => {
+            (NavPage::OledCare, OledSubTab::DimmingAndCarePro)
         }
-        Some("audio-visual") | Some("oled") => {
-            (NavPage::DeviceSettings, SettingsTab::AudioAndVisual)
+        Some("pixel") | Some("shift") | Some("refresh") => {
+            (NavPage::OledCare, OledSubTab::PixelRefreshAndShift)
         }
-        Some("connectivity") => (NavPage::DeviceSettings, SettingsTab::Connectivity),
-        Some("input") => (NavPage::DeviceSettings, SettingsTab::InputAndGpu),
-        Some("diagnosis") => (NavPage::SystemDiagnosis, SettingsTab::PowerAndPerformance),
-        Some("devices") => (NavPage::MyAsusDevices, SettingsTab::PowerAndPerformance),
-        _ => (NavPage::Home, SettingsTab::PowerAndPerformance),
+        Some("screensaver") | Some("display") => {
+            (NavPage::OledCare, OledSubTab::SystemAndScreensaver)
+        }
+        Some("home") | Some("dashboard") => (NavPage::Dashboard, OledSubTab::DimmingAndCarePro),
+        Some("power") | Some("hardware") | Some("device-settings") => {
+            (NavPage::HardwarePower, OledSubTab::DimmingAndCarePro)
+        }
+        Some("diagnosis") | Some("updates") => {
+            (NavPage::DiagnosisUpdates, OledSubTab::DimmingAndCarePro)
+        }
+        Some("settings") | Some("system-info") | Some("system") => {
+            (NavPage::SystemSettings, OledSubTab::DimmingAndCarePro)
+        }
+        _ => (NavPage::OledCare, OledSubTab::DimmingAndCarePro),
     };
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_title("MyASUS (Rust Edition)")
-            .with_inner_size([1140.0, 720.0])
-            .with_min_inner_size([880.0, 560.0]),
-        ..Default::default()
-    };
-
-    let screenshot_path = args.screenshot.clone();
-    if let Err(err) = eframe::run_native(
-        "myasus-rs",
-        options,
-        Box::new(move |cc| {
-            Ok(Box::new(MyAsusApp::new(
-                cc,
-                start_page,
-                start_tab,
-                screenshot_path,
-            )))
-        }),
-    ) {
-        eprintln!("Failed to launch GUI: {err}");
-        std::process::exit(1);
-    }
+    run_rune_app(start_page, start_oled_tab, args.screenshot);
 }

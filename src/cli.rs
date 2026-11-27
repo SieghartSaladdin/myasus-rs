@@ -66,6 +66,25 @@ pub enum CliCommand {
         #[arg(long)]
         json: bool,
     },
+    /// Set OLED Flicker-Free Dimming level (30-100) and persist it across reboots
+    Dimming { percent: u8 },
+    /// Re-apply saved display preferences (OLED dimming + Splendid). One-shot.
+    RestoreDisplay {
+        /// Seconds to wait before applying (lets the desktop finish initialising)
+        #[arg(long, default_value_t = 0)]
+        delay: u64,
+    },
+    /// Run background OLED Care daemon (restores dimming, runs periodic Pixel Shift, guards gamma)
+    OledDaemon {
+        /// Seconds to wait before initial restore at session login
+        #[arg(long, default_value_t = 5)]
+        delay: u64,
+    },
+    /// Launch the fullscreen animated dark OLED screensaver (orbit | refresh | clock)
+    Screensaver {
+        #[arg(long, default_value = "orbit")]
+        style: String,
+    },
     /// Export full JSON hardware & diagnostic support report
     ExportReport {
         #[arg(long)]
@@ -74,6 +93,42 @@ pub enum CliCommand {
 }
 
 pub fn run_cli_command(cmd: CliCommand) -> Result<(), String> {
+    // Lightweight display commands: no need to probe the whole hardware backend.
+    match cmd {
+        CliCommand::RestoreDisplay { delay } => {
+            if delay > 0 {
+                std::thread::sleep(std::time::Duration::from_secs(delay));
+            }
+            println!("{}", crate::platform::restore_saved_display_prefs()?);
+            return Ok(());
+        }
+        CliCommand::Dimming { percent } => {
+            let pct = percent.clamp(30, 100);
+            let prefs = crate::services::display_prefs::DisplayPrefs::save_dimming(pct)?;
+            let msg = crate::platform::apply_display_pipeline(&prefs)?;
+            println!("{msg} (saved)");
+            return Ok(());
+        }
+        CliCommand::OledDaemon { delay } => {
+            #[cfg(target_os = "linux")]
+            {
+                return crate::platform::linux_oled::run_linux_oled_daemon(delay);
+            }
+            #[cfg(not(target_os = "linux"))]
+            {
+                let _ = delay;
+                println!("{}", crate::platform::restore_saved_display_prefs()?);
+                return Ok(());
+            }
+        }
+        CliCommand::Screensaver { style } => {
+            let parsed = crate::services::display_prefs::ScreensaverStyle::from_str_opt(&style);
+            crate::ui::app::run_oled_screensaver_standalone(parsed);
+            return Ok(());
+        }
+        _ => {}
+    }
+
     let backend = create_backend();
     let mut collector = TelemetryCollector::new();
     let device = collector.collect_device_info(backend.as_ref());
@@ -228,5 +283,9 @@ pub fn run_cli_command(cmd: CliCommand) -> Result<(), String> {
             println!("Support report exported to: {}", path.display());
             Ok(())
         }
+        CliCommand::RestoreDisplay { .. }
+        | CliCommand::Dimming { .. }
+        | CliCommand::OledDaemon { .. }
+        | CliCommand::Screensaver { .. } => unreachable!(),
     }
 }

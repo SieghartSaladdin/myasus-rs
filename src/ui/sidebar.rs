@@ -1,201 +1,224 @@
-use egui::{Color32, Margin, Rounding, Stroke, Ui, Vec2};
+use rune::tok::motion;
+use rune::{Color, El, col, el, row, spacer, text};
 
-use crate::ui::icons::{draw_icon, draw_status_dot, Icon};
+use crate::ui::app::MyAsusState;
 use crate::ui::theme::{
-    ASUS_BLUE, BG_SIDEBAR, BORDER_SUBTLE, STATUS_DANGER, STATUS_OK, STATUS_WARN, TEXT_MUTED,
-    TEXT_PRIMARY,
+    asus_blue, bg_canvas, bg_elevated, bg_sidebar, border_subtle, divider, font_mono, font_style,
+    oled_teal, status_ok, status_warn, text_muted, text_primary,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavPage {
-    Home,
-    DeviceSettings,
-    SystemDiagnosis,
-    SystemUpdate,
-    MyAsusDevices,
-    MessageCenter,
-    CustomerSupport,
-    SystemInfo,
-    Settings,
+    OledCare,
+    Dashboard,
+    HardwarePower,
+    DiagnosisUpdates,
+    SystemSettings,
 }
 
 impl NavPage {
-    pub fn primary_items() -> &'static [(NavPage, Icon, &'static str)] {
+    pub fn items() -> &'static [(NavPage, &'static str, &'static str, &'static str)] {
         &[
-            (NavPage::Home, Icon::Home, "Home"),
-            (NavPage::DeviceSettings, Icon::Sliders, "Device Settings"),
-            (NavPage::SystemDiagnosis, Icon::Wrench, "System Diagnosis"),
-            (NavPage::SystemUpdate, Icon::Update, "System Update"),
-        ]
-    }
-
-    pub fn ecosystem_items() -> &'static [(NavPage, Icon, &'static str)] {
-        &[
-            (NavPage::MyAsusDevices, Icon::Devices, "My ASUS Devices"),
-            (NavPage::MessageCenter, Icon::Message, "Message Center"),
-        ]
-    }
-
-    pub fn support_items() -> &'static [(NavPage, Icon, &'static str)] {
-        &[
-            (NavPage::CustomerSupport, Icon::Support, "Customer Support"),
-            (NavPage::SystemInfo, Icon::Info, "System Info"),
-            (NavPage::Settings, Icon::Gear, "Settings"),
+            (NavPage::OledCare, "◈", "OLED Care", "Dimming, Shift & Saver"),
+            (NavPage::Dashboard, "⌂", "Dashboard", "Live Telemetry"),
+            (NavPage::HardwarePower, "⚡", "Hardware & Power", "Battery, Fan & Audio"),
+            (NavPage::DiagnosisUpdates, "✦", "Diagnosis & Updates", "Checkup & LVFS/APT"),
+            (NavPage::SystemSettings, "⚙", "System & Settings", "Specs, Daemon & Export"),
         ]
     }
 }
 
-pub fn render_sidebar(
-    ui: &mut Ui,
-    active_page: &mut NavPage,
-    os_label: &str,
-    asus_wmi_loaded: bool,
-    unread_messages: usize,
-) {
-    egui::Frame::none()
-        .fill(BG_SIDEBAR)
-        .inner_margin(Margin::symmetric(0.0, 12.0))
-        .show(ui, |ui| {
-            ui.set_min_height(ui.available_height());
+pub fn render_sidebar(s: &MyAsusState) -> El {
+    let brand_badge = el()
+        .size(36.0, 36.0)
+        .radius(10.0)
+        .gradient(asus_blue(), oled_teal())
+        .center()
+        .child(text("A").font(font_style(17.0, 800.0)).color(Color::WHITE));
 
-            ui.horizontal(|ui| {
-                ui.add_space(14.0);
-                let (rect, _) = ui.allocate_exact_size(Vec2::splat(34.0), egui::Sense::hover());
-                ui.painter()
-                    .circle_filled(rect.center(), 17.0, Color32::from_rgb(56, 62, 74));
-                ui.painter().text(
-                    rect.center(),
-                    egui::Align2::CENTER_CENTER,
-                    "A",
-                    egui::FontId::proportional(16.0),
-                    TEXT_PRIMARY,
-                );
-                ui.vertical(|ui| {
-                    ui.label(
-                        egui::RichText::new("MyASUS Rust")
-                            .color(TEXT_PRIMARY)
-                            .strong()
-                            .size(14.0),
-                    );
-                    ui.label(
-                        egui::RichText::new(if cfg!(target_os = "windows") {
-                            "Windows Native"
+    let header = row()
+        .w_full()
+        .center_y()
+        .gap(11.0)
+        .px(16.0)
+        .py(8.0)
+        .child(brand_badge)
+        .child(
+            col()
+                .gap(1.0)
+                .child(
+                    text("MyASUS Linux")
+                        .font(font_style(14.5, 750.0))
+                        .color(text_primary()),
+                )
+                .child(
+                    text("OLED Care • Rune GPU")
+                        .font(font_style(10.5, 500.0))
+                        .color(oled_teal()),
+                ),
+        );
+
+    let mut nav = col().w_full().px(10.0).gap(4.0);
+    for &(page, glyph, label, hint) in NavPage::items() {
+        nav = nav.child(nav_item(page, glyph, label, hint, s.active_page == page));
+    }
+
+    let wmi_color = if s.device.asus_wmi_loaded {
+        status_ok()
+    } else {
+        status_warn()
+    };
+
+    let footer = col()
+        .w_full()
+        .px(12.0)
+        .pb(14.0)
+        .gap(8.0)
+        .child(
+            col()
+                .w_full()
+                .gap(5.0)
+                .padding(11.0)
+                .radius(8.0)
+                .fill(bg_canvas())
+                .border(1.0, border_subtle())
+                .child(
+                    row()
+                        .w_full()
+                        .center_y()
+                        .justify_between()
+                        .child(
+                            text("OLED Guard")
+                                .font(font_style(11.0, 650.0))
+                                .color(oled_teal()),
+                        )
+                        .child(
+                            text(format!("{}%", s.display_prefs.flicker_free_dimming))
+                                .font(font_mono(11.0, 700.0))
+                                .color(text_primary()),
+                        ),
+                )
+                .child(
+                    text(format!(
+                        "PWM Lock {} • Shift {}",
+                        if s.display_prefs.pwm_safe_lock { "On" } else { "Off" },
+                        if s.display_prefs.pixel_shift_enabled {
+                            format!("({:+},{:+})", s.pixel_shift_offset.0, s.pixel_shift_offset.1)
                         } else {
-                            "Linux Mint / Ubuntu"
-                        })
-                        .color(TEXT_MUTED)
-                        .size(11.0),
-                    );
-                });
-            });
-
-            ui.add_space(14.0);
-
-            for &(page, icon, label) in NavPage::primary_items() {
-                nav_item(ui, active_page, page, icon, label, 0);
-            }
-
-            ui.add_space(6.0);
-            ui.separator();
-            ui.add_space(4.0);
-
-            for &(page, icon, label) in NavPage::ecosystem_items() {
-                let badge = if page == NavPage::MessageCenter {
-                    unread_messages
-                } else {
-                    0
-                };
-                nav_item(ui, active_page, page, icon, label, badge);
-            }
-
-            ui.add_space(6.0);
-            ui.separator();
-            ui.add_space(4.0);
-
-            for &(page, icon, label) in NavPage::support_items() {
-                nav_item(ui, active_page, page, icon, label, 0);
-            }
-
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                egui::Frame::none()
-                    .fill(Color32::from_rgb(22, 24, 29))
-                    .stroke(Stroke::new(1.0_f32, BORDER_SUBTLE))
-                    .rounding(Rounding::same(6.0))
-                    .inner_margin(Margin::same(10.0))
-                    .outer_margin(Margin::symmetric(12.0, 4.0))
-                    .show(ui, |ui| {
-                        ui.set_width(ui.available_width());
-                        let (dot_color, drv_text) = if asus_wmi_loaded {
-                            let label = if cfg!(target_os = "windows") {
-                                "ATKACPI Active"
+                            "Off".into()
+                        }
+                    ))
+                    .font(font_mono(10.5, 450.0))
+                    .color(text_muted()),
+                )
+                .child(divider())
+                .child(
+                    row()
+                        .center_y()
+                        .gap(6.0)
+                        .child(el().size(7.0, 7.0).radius(3.5).fill(wmi_color))
+                        .child(
+                            text(if s.device.asus_wmi_loaded {
+                                format!("{} • WMI", s.device.os_name)
                             } else {
-                                "asus-nb-wmi Active"
-                            };
-                            (STATUS_OK, label)
-                        } else {
-                            (STATUS_WARN, "Generic Hardware")
-                        };
-                        ui.horizontal(|ui| {
-                            draw_status_dot(ui, 4.0, dot_color);
-                            ui.label(egui::RichText::new(drv_text).color(TEXT_PRIMARY).size(11.5));
-                        });
-                        ui.label(egui::RichText::new(os_label).color(TEXT_MUTED).size(10.5));
-                    });
-            });
-        });
+                                s.device.os_name.clone()
+                            })
+                            .font(font_style(10.5, 550.0))
+                            .color(text_primary()),
+                        ),
+                ),
+        );
+
+    col()
+        .w(244.0)
+        .h_full()
+        .pt(14.0)
+        .gap(12.0)
+        .fill(bg_sidebar())
+        .border_sides([0.0, 1.0, 0.0, 0.0], border_subtle())
+        .child(header)
+        .child(el().px(14.0).child(divider()))
+        .child(nav)
+        .child(spacer())
+        .child(footer)
 }
 
 fn nav_item(
-    ui: &mut Ui,
-    active: &mut NavPage,
-    target: NavPage,
-    icon: Icon,
-    label: &str,
-    badge_count: usize,
-) {
-    let selected = *active == target;
-    let fill = if selected {
-        ASUS_BLUE
+    page: NavPage,
+    glyph: &'static str,
+    label: &'static str,
+    hint: &'static str,
+    active: bool,
+) -> El {
+    let accent = if page == NavPage::OledCare {
+        oled_teal()
     } else {
-        Color32::TRANSPARENT
+        asus_blue()
     };
-    let text_color = if selected { Color32::WHITE } else { TEXT_PRIMARY };
+    let bg = if active {
+        accent.alpha(0.18)
+    } else {
+        Color::TRANSPARENT
+    };
+    let border = if active {
+        accent.alpha(0.55)
+    } else {
+        Color::TRANSPARENT
+    };
+    let hover_bg = if active {
+        accent.alpha(0.22)
+    } else {
+        bg_elevated()
+    };
 
-    let resp = egui::Frame::none()
-        .fill(fill)
-        .inner_margin(Margin::symmetric(16.0, 8.5))
-        .show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            ui.horizontal(|ui| {
-                draw_icon(ui, icon, 16.0, text_color);
-                ui.add_space(6.0);
-                ui.label(egui::RichText::new(label).color(text_color).size(13.0));
-                if badge_count > 0 {
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        egui::Frame::none()
-                            .fill(STATUS_DANGER)
-                            .rounding(Rounding::same(8.0))
-                            .inner_margin(Margin::symmetric(6.0, 1.0))
-                            .show(ui, |ui| {
-                                ui.label(
-                                    egui::RichText::new(format!("{badge_count}"))
-                                        .color(Color32::WHITE)
-                                        .size(10.5)
-                                        .strong(),
-                                );
-                            });
-                    });
-                }
-            });
+    row()
+        .key(format!("nav-{label}"))
+        .role("button")
+        .label(label)
+        .focusable(true)
+        .w_full()
+        .px(12.0)
+        .py(9.0)
+        .gap(10.0)
+        .radius(8.0)
+        .center_y()
+        .fill(bg)
+        .border(1.0, border)
+        .hover_fill(hover_bg)
+        .motion(motion::SNAPPY)
+        .on_press(move |s: &mut MyAsusState| {
+            s.active_page = page;
         })
-        .response
-        .interact(egui::Sense::click());
-
-    if resp.hovered() && !selected {
-        ui.painter()
-            .rect_filled(resp.rect, 0.0, Color32::from_rgba_unmultiplied(255, 255, 255, 12));
-    }
-    if resp.clicked() {
-        *active = target;
-    }
+        .child(
+            el()
+                .size(28.0, 28.0)
+                .radius(7.0)
+                .fill(if active { accent } else { bg_elevated() })
+                .center()
+                .child(
+                    text(glyph)
+                        .font(font_style(13.5, 700.0))
+                        .color(if active { Color::WHITE } else { text_muted() }),
+                ),
+        )
+        .child(
+            col()
+                .gap(1.0)
+                .grow(1.0)
+                .shrink()
+                .child(
+                    text(label)
+                        .font(font_style(13.0, if active { 700.0 } else { 550.0 }))
+                        .color(if active { Color::WHITE } else { text_primary() }),
+                )
+                .child(
+                    text(hint)
+                        .font(font_style(10.5, 420.0))
+                        .color(if active {
+                            text_primary().alpha(0.75)
+                        } else {
+                            text_muted()
+                        }),
+                ),
+        )
 }

@@ -12,6 +12,7 @@ use crate::models::{
     system::{BatteryMetrics, DeviceInfo, FanMetrics},
     updates::UpdateReport,
 };
+use crate::services::display_prefs::DisplayPrefs;
 use crate::platform::{linux_extra, linux_oled, linux_updates, sysfs, PlatformBackend};
 
 const ASUS_WMI_DIR: &str = "/sys/devices/platform/asus-nb-wmi";
@@ -24,13 +25,48 @@ pub struct LinuxAsusBackend {
 
 impl LinuxAsusBackend {
     pub fn new() -> Self {
+        let prefs = DisplayPrefs::load();
+        let mut oled = linux_oled::read_linux_oled_care();
+        oled.flicker_free_dimming = prefs.flicker_free_dimming;
+        oled.pwm_safe_lock = prefs.pwm_safe_lock;
+        oled.pwm_safe_floor = prefs.pwm_safe_floor;
         Self {
             visual_state: Mutex::new((
-                SplendidMode::Normal,
-                2,
+                prefs.splendid_mode,
+                prefs.eye_care_level,
                 false,
-                linux_oled::read_linux_oled_care(),
+                oled,
             )),
+        }
+    }
+
+    /// Raises hardware backlight to at least `floor_percent` ONLY when sysfs is directly
+    /// writable without prompting Polkit/pkexec (used during silent login restore).
+    pub fn ensure_backlight_floor_unprivileged(floor_percent: u8) {
+        let Some(dir) = Self::find_backlight_dir() else {
+            return;
+        };
+        let max = sysfs::read_u32(dir.join("max_brightness")).unwrap_or(100).max(1);
+        let cur = sysfs::read_u32(dir.join("brightness")).unwrap_or(max);
+        let cur_pct = ((cur as f32 / max as f32) * 100.0).round() as u8;
+        if cur_pct < floor_percent {
+            let raw = ((floor_percent.clamp(40, 100) as f32 / 100.0) * max as f32).round() as u32;
+            let _ = fs::write(dir.join("brightness"), raw.to_string());
+        }
+    }
+
+    /// Caps hardware backlight to at most `cap_percent` when Uniform Brightness (Anti-ABL)
+    /// is enabled and sysfs is directly writable.
+    pub fn ensure_backlight_cap_unprivileged(cap_percent: u8) {
+        let Some(dir) = Self::find_backlight_dir() else {
+            return;
+        };
+        let max = sysfs::read_u32(dir.join("max_brightness")).unwrap_or(100).max(1);
+        let cur = sysfs::read_u32(dir.join("brightness")).unwrap_or(max);
+        let cur_pct = ((cur as f32 / max as f32) * 100.0).round() as u8;
+        if cur_pct > cap_percent {
+            let raw = ((cap_percent.clamp(50, 100) as f32 / 100.0) * max as f32).round() as u32;
+            let _ = fs::write(dir.join("brightness"), raw.to_string());
         }
     }
 
@@ -421,58 +457,60 @@ impl PlatformBackend for LinuxAsusBackend {
     }
 
     fn set_splendid_mode(&self, mode: SplendidMode, eye_care_level: u8) -> Result<String, String> {
+        let clamped_lvl = eye_care_level.clamp(1, 5);
+        let mut prefs = DisplayPrefs::load();
         {
             let mut g = self.visual_state.lock().unwrap();
             g.0 = mode;
-            g.1 = eye_care_level;
+            g.1 = clamped_lvl;
+            prefs.flicker_free_dimming = g.3.flicker_free_dimming;
+            prefs.pwm_safe_lock = g.3.pwm_safe_lock;
+            prefs.pwm_safe_floor = g.3.pwm_safe_floor;
+            prefs.splendid_mode = mode;
+            prefs.eye_care_level = clamped_lvl;
         }
-        let gamma = match mode {
-            SplendidMode::Normal => "1.0:1.0:1.0".to_string(),
-            SplendidMode::Vivid => "1.05:1.02:1.08".to_string(),
-            SplendidMode::EyeCare => {
-                let blue = (1.0 - (eye_care_level.clamp(1, 5) as f32 * 0.08)).clamp(0.55, 0.95);
-                format!("1.0:0.96:{blue:.2}")
-            }
-            SplendidMode::Manual => {
-                let blue = (1.05 - (eye_care_level.clamp(1, 5) as f32 * 0.06)).clamp(0.65, 1.05);
-                format!("1.0:0.98:{blue:.2}")
-            }
-        };
-
-        let Ok(out) = Command::new("xrandr").arg("--listmonitors").output() else {
-            return Ok(format!(
-                "Saved {} profile (xrandr unavailable on Wayland; use Cinnamon/GNOME Night Light)",
-                mode.label()
-            ));
-        };
-        let stdout = String::from_utf8_lossy(&out.stdout);
-        let output_name = stdout
-            .lines()
-            .skip(1)
-            .find_map(|line| line.split_whitespace().last())
-            .unwrap_or("eDP-1");
-
-        let status = Command::new("xrandr")
-            .args(["--output", output_name, "--gamma", &gamma])
-            .status();
-        match status {
-            Ok(s) if s.success() => Ok(format!(
-                "Applied {} ({gamma}) on {output_name}",
-                mode.label()
-            )),
-            _ => Ok(format!(
-                "Profile set to {} (gamma control skipped on current display server)",
-                mode.label()
-            )),
-        }
+        let msg = linux_oled::apply_linux_display_pipeline(&prefs)?;
+        let _ = prefs.save();
+        Ok(msg)
     }
 
     fn set_display_brightness(&self, percent: u8) -> Result<String, String> {
         let dir = Self::find_backlight_dir()
             .ok_or_else(|| "No /sys/class/backlight device detected".to_string())?;
         let max = sysfs::read_u32(dir.join("max_brightness")).unwrap_or(100);
-        let raw = ((percent.clamp(5, 100) as f32 / 100.0) * max as f32).round() as u32;
-        sysfs::write_sysfs_privileged(&dir.join("brightness"), &raw.to_string())
+
+        let mut prefs = DisplayPrefs::load();
+        let (hw_pct, sw_pct, split_engaged) = {
+            let mut g = self.visual_state.lock().unwrap();
+            prefs.flicker_free_dimming = g.3.flicker_free_dimming;
+            prefs.pwm_safe_lock = g.3.pwm_safe_lock;
+            prefs.pwm_safe_floor = g.3.pwm_safe_floor;
+            prefs.splendid_mode = g.0;
+            prefs.eye_care_level = g.1;
+            let (hw_pct, sw_pct) = prefs.split_brightness(percent);
+            let split_engaged = prefs.pwm_safe_lock && percent < prefs.pwm_safe_floor;
+            if split_engaged {
+                g.3.flicker_free_dimming = sw_pct;
+                prefs.flicker_free_dimming = sw_pct;
+            }
+            (hw_pct, sw_pct, split_engaged)
+        };
+
+        let raw = ((hw_pct.clamp(5, 100) as f32 / 100.0) * max as f32).round() as u32;
+        sysfs::write_sysfs_privileged(&dir.join("brightness"), &raw.to_string())?;
+        if split_engaged {
+            let _ = linux_oled::apply_linux_display_pipeline(&prefs);
+            let _ = prefs.save();
+            Ok(format!(
+                "Flicker-Free Brightness {percent}% → Hardware locked at {hw_pct}% + Gamma Dimming {sw_pct}%"
+            ))
+        } else if prefs.uniform_brightness_enabled && percent > prefs.uniform_brightness_cap {
+            Ok(format!(
+                "Uniform Brightness (Anti-ABL) capped hardware backlight at {hw_pct}%"
+            ))
+        } else {
+            Ok(format!("Hardware backlight set to {hw_pct}%"))
+        }
     }
 
     fn set_volume_booster(&self, enabled: bool) -> Result<String, String> {
@@ -497,8 +535,47 @@ impl PlatformBackend for LinuxAsusBackend {
 
     fn set_oled_flicker_free_dimming(&self, percent: u8) -> Result<String, String> {
         let clamped = percent.clamp(30, 100);
-        self.visual_state.lock().unwrap().3.flicker_free_dimming = clamped;
-        linux_oled::apply_linux_flicker_free_dimming(clamped)
+        let mut prefs = DisplayPrefs::load();
+        {
+            let mut g = self.visual_state.lock().unwrap();
+            g.3.flicker_free_dimming = clamped;
+            prefs.flicker_free_dimming = clamped;
+            prefs.pwm_safe_lock = g.3.pwm_safe_lock;
+            prefs.pwm_safe_floor = g.3.pwm_safe_floor;
+            prefs.splendid_mode = g.0;
+            prefs.eye_care_level = g.1;
+        }
+        if prefs.pwm_safe_lock && clamped < 100 {
+            Self::ensure_backlight_floor_unprivileged(prefs.pwm_safe_floor);
+        }
+        let msg = linux_oled::apply_linux_display_pipeline(&prefs)?;
+        match prefs.save() {
+            Ok(()) => Ok(msg),
+            Err(e) => Ok(format!("{msg} (warning: not persisted: {e})")),
+        }
+    }
+
+    fn set_oled_pwm_safe_lock(&self, enabled: bool, floor: u8) -> Result<String, String> {
+        let clamped_floor = floor.clamp(40, 100);
+        let mut prefs = DisplayPrefs::load();
+        {
+            let mut g = self.visual_state.lock().unwrap();
+            g.3.pwm_safe_lock = enabled;
+            g.3.pwm_safe_floor = clamped_floor;
+            prefs.flicker_free_dimming = g.3.flicker_free_dimming;
+            prefs.pwm_safe_lock = enabled;
+            prefs.pwm_safe_floor = clamped_floor;
+            prefs.splendid_mode = g.0;
+            prefs.eye_care_level = g.1;
+        }
+        if enabled && prefs.flicker_free_dimming < 100 {
+            Self::ensure_backlight_floor_unprivileged(clamped_floor);
+        }
+        let _ = prefs.save();
+        Ok(format!(
+            "PWM-Free Backlight Lock {} (hardware floor {clamped_floor}%)",
+            if enabled { "enabled" } else { "disabled" }
+        ))
     }
 
     fn read_cpu_governor(&self) -> String {

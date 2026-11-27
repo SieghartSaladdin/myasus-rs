@@ -1,11 +1,5 @@
-pub mod device_settings;
-pub mod device_settings_av;
-pub mod devices;
 pub mod diagnosis;
+pub mod hardware_power;
 pub mod home;
-pub mod interactive_diag;
-pub mod messages;
-pub mod settings;
-pub mod support;
-pub mod system_info;
-pub mod updates;
+pub mod oled_care;
+pub mod system_settings;

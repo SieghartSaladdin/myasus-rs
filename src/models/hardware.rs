@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -154,6 +156,8 @@ pub struct OledCareState {
     pub auto_hide_taskbar: bool,
     pub taskbar_transparency: bool,
     pub flicker_free_dimming: u8,
+    pub pwm_safe_lock: bool,
+    pub pwm_safe_floor: u8,
     pub target_mode_enabled: bool,
 }
 
@@ -165,6 +169,8 @@ impl Default for OledCareState {
             auto_hide_taskbar: false,
             taskbar_transparency: false,
             flicker_free_dimming: 100,
+            pwm_safe_lock: true,
+            pwm_safe_floor: 60,
             target_mode_enabled: false,
         }
     }

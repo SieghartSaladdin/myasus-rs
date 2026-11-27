@@ -1,0 +1,4 @@
+[dev]
+patch = ["src/ui/**/*.rs"]
+features = []
+bin = "myasus-rs"

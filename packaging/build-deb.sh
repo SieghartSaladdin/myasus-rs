@@ -12,10 +12,12 @@ rm -rf "$PKG_DIR"
 mkdir -p "$PKG_DIR/DEBIAN" \
          "$PKG_DIR/usr/local/bin" \
          "$PKG_DIR/usr/share/applications" \
-         "$PKG_DIR/etc/udev/rules.d"
+         "$PKG_DIR/etc/udev/rules.d" \
+         "$PKG_DIR/etc/xdg/autostart"
 
 install -m755 target/release/myasus-rs "$PKG_DIR/usr/local/bin/myasus-rs"
 install -m644 packaging/myasus-rs.desktop "$PKG_DIR/usr/share/applications/myasus-rs.desktop"
+install -m644 packaging/myasus-rs-restore.desktop "$PKG_DIR/etc/xdg/autostart/myasus-rs-restore.desktop"
 install -m644 packaging/99-myasus-rs.rules "$PKG_DIR/etc/udev/rules.d/99-myasus-rs.rules"
 
 cat > "$PKG_DIR/DEBIAN/control" <<EOF

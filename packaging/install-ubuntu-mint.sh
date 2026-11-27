@@ -31,6 +31,7 @@ cargo build --release
 echo "==> Installing binary, desktop entry, and udev rules..."
 sudo install -Dm755 target/release/myasus-rs /usr/local/bin/myasus-rs
 sudo install -Dm644 packaging/myasus-rs.desktop /usr/share/applications/myasus-rs.desktop
+sudo install -Dm644 packaging/myasus-rs-restore.desktop /etc/xdg/autostart/myasus-rs-restore.desktop
 sudo install -Dm644 packaging/99-myasus-rs.rules /etc/udev/rules.d/99-myasus-rs.rules
 
 # Apply permissions immediately for current boot

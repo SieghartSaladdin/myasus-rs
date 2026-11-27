@@ -61,7 +61,9 @@ impl WindowsAsusBackend {
         let device_cache = Self::probe_device_info(atk_available);
         let initial_temp = Self::query_thermal_zone_celsius();
         let initial_brightness = Self::query_brightness().unwrap_or(75);
-        let initial_oled = windows_oled::read_windows_oled_care();
+        let mut initial_oled = windows_oled::read_windows_oled_care();
+        initial_oled.flicker_free_dimming =
+            crate::services::display_prefs::DisplayPrefs::load().flicker_free_dimming;
 
         Self {
             atk_available,
@@ -469,7 +471,11 @@ impl PlatformBackend for WindowsAsusBackend {
     fn set_oled_flicker_free_dimming(&self, percent: u8) -> Result<String, String> {
         let clamped = percent.clamp(30, 100);
         self.sensors.lock().unwrap().oled_care.flicker_free_dimming = clamped;
-        windows_oled::apply_windows_flicker_free_dimming(clamped)
+        let msg = windows_oled::apply_windows_flicker_free_dimming(clamped)?;
+        match crate::services::display_prefs::DisplayPrefs::save_dimming(clamped) {
+            Ok(_) => Ok(msg),
+            Err(e) => Ok(format!("{msg} (warning: not persisted: {e})")),
+        }
     }
 
     fn check_updates(&self) -> UpdateReport {
