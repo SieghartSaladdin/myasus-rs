@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "app_name": "myasus-rs",
+  "version": "0.1.0",
+  "features": [
+    {
+      "id": "oled-care-page",
+      "user_name": "OLED Care page",
+      "aliases": ["oled care", "halaman oled", "dimming page"],
+      "entry_point": "App start page; sidebar item 'OLED Care'",
+      "selectors_or_anchors": [
+        "key=nav-OLED Care",
+        "key=page-OledCare",
+        "key=oled-dim-slider",
+        "text=ASUS OLED Care (Linux Native)"
+      ],
+      "key_invariants": [
+        "The OLED Care page is the single visible page body",
+        "Its title and the Flicker-Free Dimming slider are shown",
+        "The run emits no panic or error output"
+      ],
+      "verify_command": "python3 scripts/verify.py run oled-care-page",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "oled-sub-tabs",
+      "user_name": "OLED Care sub-tabs (Dimming & Care Pro / Pixel Refresh & Shift / System & Screensaver)",
+      "aliases": ["tab oled", "pixel refresh tab", "sub tab"],
+      "entry_point": "OLED Care page, segmented control under the panel card",
+      "selectors_or_anchors": [
+        "role=radio label=Pixel Refresh & Shift",
+        "role=radio label=System & Screensaver",
+        "key=oled-tab-1",
+        "key=oled-tab-2"
+      ],
+      "key_invariants": [
+        "Picking a tab shows exactly that tab's body and removes the previous one",
+        "Pixel Refresh & Shift shows the real X11 RandR Pixel Shift card",
+        "The run emits no panic or error output"
+      ],
+      "verify_command": "python3 scripts/verify.py run oled-sub-tabs",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "dashboard-page",
+      "user_name": "Dashboard (Live Telemetry)",
+      "aliases": ["dashboard", "telemetry", "home"],
+      "entry_point": "Sidebar item 'Dashboard'",
+      "selectors_or_anchors": [
+        "key=nav-Dashboard",
+        "key=page-Dashboard",
+        "text=CPU & GPU",
+        "text=Storage Overview"
+      ],
+      "key_invariants": [
+        "Only the Dashboard page body is shown after the switch settles",
+        "CPU & GPU and Storage Overview cards are shown",
+        "The run emits no panic or error output"
+      ],
+      "verify_command": "python3 scripts/verify.py run dashboard-page",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "hardware-power-page",
+      "user_name": "Hardware & Power (Battery, Fan & Audio)",
+      "aliases": ["hardware", "power", "battery charge limit"],
+      "entry_point": "Sidebar item 'Hardware & Power'",
+      "selectors_or_anchors": [
+        "key=nav-Hardware & Power",
+        "key=page-HardwarePower",
+        "text=Battery Health Charging"
+      ],
+      "key_invariants": [
+        "Only the Hardware & Power page body is shown after the switch settles",
+        "The Battery Health Charging card is shown",
+        "The run emits no panic or error output"
+      ],
+      "verify_command": "python3 scripts/verify.py run hardware-power-page",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "diagnosis-updates-page",
+      "user_name": "Diagnosis & Updates (Checkup & LVFS/APT)",
+      "aliases": ["diagnosis", "checkup", "updates"],
+      "entry_point": "Sidebar item 'Diagnosis & Updates'",
+      "selectors_or_anchors": [
+        "key=nav-Diagnosis & Updates",
+        "key=page-DiagnosisUpdates",
+        "key=diag-tab-0",
+        "text=Run Diagnosis",
+        "text=Check Updates"
+      ],
+      "key_invariants": [
+        "Only the Diagnosis & Updates page body is shown after the switch settles",
+        "The Hardware Checkup tab body and the Run Diagnosis / Check Updates buttons are shown",
+        "The run emits no panic or error output"
+      ],
+      "verify_command": "python3 scripts/verify.py run diagnosis-updates-page",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "system-settings-page",
+      "user_name": "System & Settings (Specs, Daemon & Export)",
+      "aliases": ["settings", "system", "refresh interval"],
+      "entry_point": "Sidebar item 'System & Settings'",
+      "selectors_or_anchors": [
+        "key=nav-System & Settings",
+        "key=page-SystemSettings",
+        "text=Telemetry Refresh Interval"
+      ],
+      "key_invariants": [
+        "Only the System & Settings page body is shown after the switch settles",
+        "The Telemetry Refresh Interval control is shown",
+        "The run emits no panic or error output"
+      ],
+      "verify_command": "python3 scripts/verify.py run system-settings-page",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "page-switch-transition",
+      "user_name": "Page switch animation",
+      "aliases": ["transisi", "page transition", "animasi pindah halaman"],
+      "entry_point": "Click any sidebar item",
+      "selectors_or_anchors": [
+        "key=page-Dashboard",
+        "key=main-scroll"
+      ],
+      "key_invariants": [
+        "Mid-transition the old page is already gone and only the new page is drawn, fading in",
+        "The new page's opacity rises monotonically and ends fully opaque",
+        "Exactly one page body exists at every captured moment"
+      ],
+      "verify_command": "python3 scripts/verify.py run page-switch-transition",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "dimming-state-display",
+      "user_name": "Flicker-Free Dimming value shown in the UI",
+      "aliases": ["dimming 54%", "oled guard", "nilai dimming"],
+      "entry_point": "OLED Care page and sidebar 'OLED Guard' footer",
+      "selectors_or_anchors": [
+        "key=oled-dim-slider",
+        "text=OLED Guard"
+      ],
+      "key_invariants": [
+        "With a saved dimming of 54% the sidebar footer and the dimming card both show 54%",
+        "The panel summary line reports Gamma Dimming 54%",
+        "Verification runs in a sandbox with no display, so the real screen and settings are never touched"
+      ],
+      "verify_command": "python3 scripts/verify.py run dimming-state-display",
+      "artifacts": ["screenshot", "element-tree"]
+    },
+    {
+      "id": "oled-screensaver-preview",
+      "user_name": "OLED screensaver",
+      "aliases": ["screensaver", "orbit", "screen saver oled"],
+      "entry_point": "OLED Care page, 'Screensaver' button (scene screensaver-live)",
+      "selectors_or_anchors": [
+        "key=oled-screensaver-root",
+        "key=orbit-ring-1",
+        "text=ASUS OLED Care • Click or press Esc to wake"
+      ],
+      "key_invariants": [
+        "The screensaver overlay and its orbit rings are drawn",
+        "The orbit ring has moved between 1s and 2s, so the animation is driven every frame",
+        "The wake-up hint is shown"
+      ],
+      "verify_command": "python3 scripts/verify.py run oled-screensaver-preview",
+      "artifacts": ["screenshot", "element-tree"]
+    }
+  ]
+}
