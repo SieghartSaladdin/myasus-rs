@@ -5,9 +5,9 @@ use crate::models::hardware::SplendidMode;
 use crate::services::display_prefs::{PixelShiftStrength, ScreensaverStyle};
 use crate::ui::app::MyAsusState;
 use crate::ui::theme::{
-    asus_blue, bg_card, bg_elevated, border_subtle, card_heading, divider, font_mono, font_style,
-    left_blue_card, oled_notice_red, oled_teal, oled_teal_card, page_title, rgb, status_ok,
-    status_pill, status_warn, surface_card, text_muted, text_primary,
+    asus_blue_soft, bg_card, bg_elevated, border_subtle, card_heading, divider, font_mono,
+    font_style, oled_notice_red, oled_teal, page_title, rgb, status_ok, status_pill,
+    status_warn, surface_card, text_muted, text_primary, value_pill,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -159,7 +159,7 @@ pub fn render_oled_care(s: &MyAsusState, k: &Kit) -> El {
         .gap(14.0)
         .child(page_title(
             "ASUS OLED Care (Linux Native)",
-            "Only real, verified Linux OLED protections: PWM-free dimming, Anti-ABL, xrandr Pixel Shift, Dark Mode, DPMS & GPU Screensaver.",
+            "Linux OLED protections: PWM-free dimming, Anti-ABL, xrandr Pixel Shift, Dark Mode, DPMS & GPU Screensaver.",
         ))
         .child(panel_hero)
         .child(sub_tabs)
@@ -170,7 +170,7 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
     let p = &s.display_prefs;
 
     // 1. Flicker-Free Dimming + PWM-Safe Backlight Lock + Uniform Brightness (Anti-ABL)
-    let dimming_card = oled_teal_card(vec![
+    let dimming_card = surface_card(vec![
         row()
             .w_full()
             .center_y()
@@ -389,7 +389,7 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
         SplendidMode::Manual => 3,
     };
 
-    let splendid_card = left_blue_card(vec![
+    let splendid_card = surface_card(vec![
         card_heading(
             "Splendid Color & Eye Care",
             Some("Applies RGB gamma atomically alongside OLED Dimming so neither resets the other."),
@@ -465,7 +465,7 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
 
     let rog_status_pill = match &s.panel_info.external_rog_monitor {
         Some(name) => status_pill(format!("ROG Detected: {name}"), status_ok()),
-        None => status_pill("Laptop OLED (No External ROG)", asus_blue()),
+        None => value_pill("Laptop OLED (No External ROG)", asus_blue_soft()),
     };
 
     let away_and_rog_card = surface_card(vec![
@@ -539,7 +539,7 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
             .child(
                 text(match &s.panel_info.external_rog_monitor {
                     Some(name) if s.panel_info.ddcutil_available => format!(
-                        "External ROG OLED ({name}) connected with ddcutil ready — hardware OLED Care Pro controls available via DDC/CI."
+                        "External ROG OLED ({name}) connected with ddcutil ready: hardware OLED Care Pro controls available via DDC/CI."
                     ),
                     Some(name) => format!(
                         "External ROG OLED ({name}) detected! Install `sudo apt install ddcutil` to control hardware Neo Proximity / Logo Dimming via DDC/CI."
@@ -575,7 +575,7 @@ fn render_pixel_refresh_and_shift(s: &MyAsusState, k: &Kit) -> El {
     };
 
     // 1. Real xrandr Pixel Shift
-    let shift_card = oled_teal_card(vec![
+    let shift_card = surface_card(vec![
         row()
             .w_full()
             .center_y()
@@ -584,7 +584,7 @@ fn render_pixel_refresh_and_shift(s: &MyAsusState, k: &Kit) -> El {
                 "Pixel Shift (Real X11 RandR Translation)",
                 Some("Subtly translates the image by integer pixels (1:1 sharp, zero blur) in an 8-point orbit so edges & icons age evenly."),
             ))
-            .child(status_pill(
+            .child(value_pill(
                 format!(
                     "Offset ({:+}, {:+}) px",
                     s.pixel_shift_offset.0, s.pixel_shift_offset.1
@@ -687,7 +687,7 @@ fn render_pixel_refresh_and_shift(s: &MyAsusState, k: &Kit) -> El {
     ]);
 
     // 2. Active OLED Pixel Refresh Calibration
-    let refresh_card = left_blue_card(vec![
+    let refresh_card = surface_card(vec![
         card_heading(
             "OLED Pixel Refresh & Wear Calibration",
             Some("Runs moving low-intensity RGB + luminance homogenization sweeps over pure #000000 OLED black to clear temporary image retention."),
@@ -747,7 +747,7 @@ fn render_system_and_screensaver(s: &MyAsusState, k: &Kit) -> El {
     };
 
     // 1. System & Display Protection (Real gsettings + DPMS!)
-    let system_card = oled_teal_card(vec![
+    let system_card = surface_card(vec![
         card_heading(
             "System & Display Burn-In Protection",
             Some("Directly configures Linux Mint Cinnamon / Ubuntu GNOME themes, panel auto-hide, and X11 DPMS display sleep."),
@@ -801,7 +801,7 @@ fn render_system_and_screensaver(s: &MyAsusState, k: &Kit) -> El {
                             .color(text_muted()),
                     ),
             )
-            .child(status_pill(
+            .child(value_pill(
                 if s.screen_off_mins == 0 {
                     "Never".into()
                 } else {
@@ -858,7 +858,7 @@ fn render_system_and_screensaver(s: &MyAsusState, k: &Kit) -> El {
     ]);
 
     // 2. Built-in GPU Animated Dark OLED Screensaver
-    let saver_card = left_blue_card(vec![
+    let saver_card = surface_card(vec![
         card_heading(
             "Dedicated OLED Dark Screensaver (GPU Animated)",
             Some("Pure #000000 black background (>92% pixels fully off) with slow-drifting low-luminance motion to prevent static image retention."),

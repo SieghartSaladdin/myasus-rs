@@ -463,8 +463,7 @@ pub fn view(s: &MyAsusState, _cx: &mut Cx<MyAsusState>) -> El {
         overlays.push(
             col()
                 .key("display-test-overlay")
-                .w_full()
-                .h_full()
+                .pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0))
                 .fill(color)
                 .center()
                 .gap(10.0)
@@ -478,7 +477,7 @@ pub fn view(s: &MyAsusState, _cx: &mut Cx<MyAsusState>) -> El {
                         .center()
                         .gap(4.0)
                         .child(
-                            text(format!("OLED Uniformity & Subpixel Test — {color_name}"))
+                            text(format!("OLED Uniformity & Subpixel Test: {color_name}"))
                                 .font(font_style(15.5, 650.0))
                                 .color(text_primary()),
                         )
@@ -525,7 +524,7 @@ pub fn run_rune_app(
             ("power", |s| s.active_page = NavPage::HardwarePower),
         ],
         ..AppSpec::new(
-            "MyASUS Linux — OLED Care (Rune)",
+            "MyASUS Linux: OLED Care (Rune)",
             (1160.0, 760.0),
             || MyAsusState::new(NavPage::OledCare, OledSubTab::DimmingAndCarePro),
             view,

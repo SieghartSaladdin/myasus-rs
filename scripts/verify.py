@@ -30,11 +30,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from verify_checks import (Check, evaluate, find_center, has_key, has_text, moved, no_key,
-                           opacity_between, page_keys, text_count)
+                           opacity_between, page_keys, text_count, text_fits, covers_window)
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BINARY = ROOT / "target" / "debug" / "myasus-rs"
 WINDOW = "1160x760"
+MIN_WINDOW = "920x600"  # AppSpec.min_size: the smallest window the app allows
 SETTLED = 1.2  # virtual seconds: every transition has landed
 MIN_PNG_BYTES = 20_000  # a real screenshot of this UI is ~300 KB; a blank frame is a few KB
 ERROR_RE = re.compile(r"panicked|^\s*(error|Error|ERROR)\b|could not be loaded", re.M)
@@ -59,6 +60,7 @@ class Shot:
     tap_label: str | None = None  # tap the button/radio with this label (found on the start page)
     scene: str | None = None
     settle: bool = True
+    size: str = WINDOW
 
 
 @dataclass(frozen=True)
@@ -69,15 +71,21 @@ class Feature:
 
 
 def page_feature(nav: str, page_key: str, texts: tuple[str, ...] = (), keys: tuple[str, ...] = ()) -> Feature:
-    checks = [has_key("page", page_key), page_keys("page")]
+    checks = [has_key("page", page_key), page_keys("page"), text_fits("page", 1160)]
     checks += [has_text("page", t) for t in texts] + [has_key("page", k) for k in keys]
     return Feature((Shot("page", tap_key=f"nav-{nav}"),), tuple(checks))
 
 
+PAGES = (("oled", "OLED Care"), ("dashboard", "Dashboard"), ("hardware", "Hardware & Power"),
+         ("diagnosis", "Diagnosis & Updates"), ("system", "System & Settings"))
 FEATURES: dict[str, Feature] = {
     "oled-care-page": Feature((Shot("start"),), (
         has_key("start", "page-OledCare"), page_keys("start"), has_key("start", "nav-OLED Care"),
-        has_text("start", "ASUS OLED Care (Linux Native)"), has_key("start", "oled-dim-slider"))),
+        has_text("start", "ASUS OLED Care (Linux Native)"), has_key("start", "oled-dim-slider"),
+        text_fits("start", 1160))),
+    "min-window-layout": Feature(
+        tuple(Shot(n, tap_key=f"nav-{label}", size=MIN_WINDOW) for n, label in PAGES),
+        tuple(text_fits(n, 920) for n, _ in PAGES)),
     "oled-sub-tabs": Feature(
         (Shot("pixel", tap_label="Pixel Refresh & Shift"), Shot("saver", tap_label="System & Screensaver")),
         (has_key("pixel", "oled-tab-1"), no_key("pixel", "oled-tab-0"),
@@ -102,7 +110,8 @@ FEATURES: dict[str, Feature] = {
         prefs={"flicker_free_dimming": 54}),
     "oled-screensaver-preview": Feature(
         (Shot("t1", 1.0, scene="screensaver-live", settle=False), Shot("t2", 2.0, scene="screensaver-live", settle=False)),
-        (has_key("t1", "oled-screensaver-root"), has_key("t1", "orbit-ring-1"),
+        (has_key("t1", "oled-screensaver-root"), covers_window("t1", "oled-screensaver-root", 1160, 760),
+         has_key("t1", "orbit-ring-1"),
          has_text("t1", "ASUS OLED Care • Click or press Esc to wake"), moved("t1", "t2", "orbit-ring-1", 20))),
 }
 
@@ -125,7 +134,7 @@ def run_shot(binary: Path, home: Path, out_dir: Path, shot: Shot, prefs: dict | 
     if shot.scene:
         args += ["--scene", shot.scene]
     args += ["--at", str(shot.at)] + (["--settle"] if shot.settle else [])
-    args += ["--tree", str(tree_path), "--snap", str(png), "--size", WINDOW]
+    args += ["--tree", str(tree_path), "--snap", str(png), "--size", shot.size]
     env = {k: v for k, v in os.environ.items() if k not in ("DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY")}
     env.update(HOME=str(home), XDG_CONFIG_HOME=str(config), RUNE_PERF_WARN="0")
     started = time.monotonic()

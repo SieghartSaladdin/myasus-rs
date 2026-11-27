@@ -4,8 +4,8 @@ use rune_kit::{Button, ButtonVariant, Kit, SegmentedControl, Switch};
 use crate::services::display_prefs::DisplayPrefs;
 use crate::ui::app::MyAsusState;
 use crate::ui::theme::{
-    card_heading, font_mono, font_style, kv_row, left_blue_card, oled_teal_card, page_title,
-    status_ok, status_pill, status_warn, surface_card, text_muted, text_primary,
+    card_heading, font_mono, font_style, kv_row, page_title, status_ok, status_pill,
+    status_warn, surface_card, text_muted, text_primary,
 };
 
 pub fn render_system_settings(s: &MyAsusState, k: &Kit) -> El {
@@ -21,7 +21,7 @@ pub fn render_system_settings(s: &MyAsusState, k: &Kit) -> El {
         _ => 3,
     };
 
-    let prefs_card = oled_teal_card(vec![
+    let prefs_card = surface_card(vec![
         card_heading(
             "App & OLED Daemon Preferences",
             Some("App settings live in config.json; OLED Care state lives in display.json and is maintained by `myasus-rs oled-daemon`."),
@@ -92,7 +92,7 @@ pub fn render_system_settings(s: &MyAsusState, k: &Kit) -> El {
             ),
     ]);
 
-    let specs_card = left_blue_card(vec![
+    let specs_card = surface_card(vec![
         row()
             .w_full()
             .center_y()
@@ -111,7 +111,7 @@ pub fn render_system_settings(s: &MyAsusState, k: &Kit) -> El {
                 },
             )),
         kv_row("Product", format!("{} ({})", d.product_name, d.product_family)),
-        kv_row("OLED Panel (EDID)", format!("{} — {}", s.panel_info.panel_model, s.panel_info.resolution)),
+        kv_row("OLED Panel (EDID)", format!("{}, {}", s.panel_info.panel_model, s.panel_info.resolution)),
         kv_row("BIOS / Mainboard", format!("{} • {}", d.bios_version, d.board_name)),
         kv_row("OS & Kernel", format!("{} ({})", d.os_name, d.kernel_version)),
         kv_row("UI Renderer", "Rune Native GPU (wgpu)"),

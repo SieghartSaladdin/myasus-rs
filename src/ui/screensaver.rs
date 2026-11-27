@@ -67,8 +67,7 @@ pub fn render_screensaver_canvas<S: 'static>(
 
     let mut root = el()
         .key("oled-screensaver-root")
-        .w_full()
-        .h_full()
+        .pin(Some(0.0), Some(0.0), Some(0.0), Some(0.0)) // rune_kit::root lays overlays out beside the shell; pin covers the window
         .fill(Color::BLACK)
         .on_press(on_dismiss);
 
@@ -112,12 +111,12 @@ pub fn render_screensaver_canvas<S: 'static>(
                         .child(
                             text(now_date)
                                 .font(font_style(12.0, 450.0))
-                                .color(rgb(110, 125, 145).alpha(0.55)),
+                                .color(rgb(140, 152, 170).alpha(0.85)),
                         )
                         .child(
                             text("ASUS OLED Care • Click or press Esc to wake")
                                 .font(font_style(10.5, 450.0))
-                                .color(oled_teal().alpha(0.45)),
+                                .color(oled_teal().alpha(0.67)),
                         ),
                 );
         }
@@ -195,7 +194,7 @@ pub fn render_screensaver_canvas<S: 'static>(
                     .child(
                         text("Uniform RGB/luminance sweeps exercise subpixels evenly on true OLED black. Click or press Esc to exit.")
                             .font(font_style(11.0, 420.0))
-                            .color(rgb(140, 155, 175).alpha(0.7))
+                            .color(rgb(140, 155, 175).alpha(0.79))
                             .wrap()
                             .w_full(),
                     ),
@@ -214,12 +213,12 @@ pub fn render_screensaver_canvas<S: 'static>(
                     .child(
                         text(now_time)
                             .font(font_mono(42.0, 500.0))
-                            .color(rgb(120, 130, 145).alpha(0.55)),
+                            .color(rgb(120, 130, 145).alpha(0.75)),
                     )
                     .child(
                         text(now_date)
                             .font(font_style(12.0, 400.0))
-                            .color(rgb(90, 100, 115).alpha(0.45)),
+                            .color(rgb(140, 152, 170).alpha(0.85)),
                     ),
             );
         }

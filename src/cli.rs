@@ -182,7 +182,7 @@ pub fn run_cli_command(cmd: CliCommand) -> Result<(), String> {
             } else {
                 println!("=== System Diagnosis ({}) ===", report.timestamp);
                 for item in &report.items {
-                    println!("[{:^11}] {} — {}", item.status.label(), item.category.title(), item.summary);
+                    println!("[{:^11}] {}: {}", item.status.label(), item.category.title(), item.summary);
                 }
             }
             Ok(())

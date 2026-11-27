@@ -17,6 +17,11 @@ pub fn asus_blue() -> Color {
     rgb(22, 132, 255)
 }
 
+/// `asus_blue` text on its own 15% tint is 4.1:1; this lighter blue is 6:1 there.
+pub fn asus_blue_soft() -> Color {
+    rgb(92, 168, 255)
+}
+
 pub fn oled_teal() -> Color {
     rgb(32, 206, 166)
 }
@@ -98,45 +103,22 @@ pub fn font_mono(size: f32, weight: f32) -> TextStyle {
 pub fn page_title(title: impl Into<String>, subtitle: impl Into<String>) -> El {
     col()
         .gap(3.0)
+        .shrink()
+        .min_w(0.0)
         .child(
             text(title.into())
                 .font(font_style(22.0, 700.0))
-                .color(text_primary()),
+                .color(text_primary())
+                .wrap()
+                .w_full(),
         )
         .child(
             text(subtitle.into())
                 .font(font_style(12.5, 420.0))
-                .color(text_muted()),
+                .color(text_muted())
+                .wrap()
+                .w_full(),
         )
-}
-
-/// Accent-bordered feature card with custom accent color (ASUS Blue or OLED Teal).
-pub fn accent_card(accent: Color, children: Vec<El>) -> El {
-    let bar = el().w(3.0).radius(2.0).fill(accent);
-    let body = col()
-        .grow(1.0)
-        .shrink()
-        .gap(11.0)
-        .px(16.0)
-        .py(14.0)
-        .children(children);
-
-    row()
-        .w_full()
-        .items_stretch()
-        .radius(10.0)
-        .fill(bg_card())
-        .border(1.0, border_subtle())
-        .child(bar)
-        .child(body)
-}
-
-pub fn left_blue_card(children: Vec<El>) -> El {
-    accent_card(asus_blue(), children)
-}
-
-pub fn oled_teal_card(children: Vec<El>) -> El {
-    accent_card(oled_teal(), children)
 }
 
 pub fn surface_card(children: Vec<El>) -> El {
@@ -151,10 +133,12 @@ pub fn surface_card(children: Vec<El>) -> El {
 }
 
 pub fn card_heading(title: impl Into<String>, subtitle: Option<&str>) -> El {
-    let mut c = col().gap(2.0).child(
+    let mut c = col().gap(2.0).shrink().min_w(0.0).child(
         text(title.into())
             .font(font_style(15.0, 680.0))
-            .color(text_primary()),
+            .color(text_primary())
+            .wrap()
+            .w_full(),
     );
     if let Some(sub) = subtitle {
         c = c.child(
@@ -178,6 +162,19 @@ pub fn status_pill(label: impl Into<String>, color: Color) -> El {
         .fill(color.alpha(0.15))
         .border(1.0, color.alpha(0.45))
         .child(el().size(6.0, 6.0).radius(3.0).fill(color))
+        .child(text(label.into()).font(font_style(11.0, 620.0)).color(color))
+}
+
+/// A value shown in a capsule (a limit, a governor, an offset). No dot: a dot says "this is a
+/// state", and these only carry a number or a name.
+pub fn value_pill(label: impl Into<String>, color: Color) -> El {
+    row()
+        .center_y()
+        .px(9.0)
+        .py(3.5)
+        .radius(999.0)
+        .fill(color.alpha(0.15))
+        .border(1.0, color.alpha(0.45))
         .child(text(label.into()).font(font_style(11.0, 620.0)).color(color))
 }
 
@@ -206,7 +203,10 @@ pub fn kv_row(label: impl Into<String>, value: impl Into<String>) -> El {
         .child(
             text(value.into())
                 .font(font_style(12.5, 580.0))
-                .color(text_primary()),
+                .color(text_primary())
+                .wrap()
+                .shrink()
+                .min_w(0.0),
         )
 }
 

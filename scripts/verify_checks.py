@@ -94,6 +94,55 @@ def moved(shot_a: str, shot_b: str, key: str, min_points: float) -> Check:
     return Check(f"{shot_a} -> {shot_b}: {key!r} moved at least {min_points}pt", (shot_a, shot_b), run)
 
 
+def overflowing_text(tree: dict, width: float) -> list[tuple[str, str, int]]:
+    """Text whose box runs past the window, or past the nearest rounded box (card, pill, button)
+    around it, as (text, where, points past the edge).
+
+    Reads layout boxes only. A line that is not allowed to wrap can still overrun its card while its
+    box stays inside (the box is clamped to the card), so long lines must also be set to wrap.
+    """
+    elements = tree.get("elements", [])
+    out = []
+    for e in elements:
+        text = e.get("text")
+        if not text:
+            continue
+        right = e["rect"][0] + e["rect"][2]
+        if right > width + 0.5:
+            out.append((text[:40], "window", round(right - width)))
+            continue
+        around = [a for a in elements if a is not e and a.get("radius", 0) > 0
+                  and e["path"].startswith(a["path"] + "/")]
+        if around:
+            nearest = max(around, key=lambda a: len(a["path"]))
+            past = right - (nearest["rect"][0] + nearest["rect"][2])
+            if past > 0.5:
+                out.append((text[:40], "card", round(past)))
+    return out
+
+
+def text_fits(shot: str, width: float) -> Check:
+    def run(trees: Trees) -> Outcome:
+        bad = overflowing_text(trees.get(shot, {}), width)
+        return not bad, "all text inside" if not bad else f"{len(bad)} outside: {bad[:3]}"
+
+    return Check(f"{shot}: all text stays inside the {width:g}pt window and its card", (shot,), run)
+
+
+def covers_window(shot: str, key: str, width: float, height: float) -> Check:
+    """An overlay must fill the window. `rune_kit::root` lays overlays out beside the shell, so one
+    that is not pinned sits past the right edge: present in the tree, never on screen."""
+    def run(trees: Trees) -> Outcome:
+        found = _with_key(trees, shot, key)
+        if not found:
+            return False, f"no element with key {key!r}"
+        x, y, w, h = found[0]["rect"]
+        ok = abs(x) <= 1 and abs(y) <= 1 and abs(w - width) <= 1 and abs(h - height) <= 1
+        return ok, f"rect [{x:g}, {y:g}, {w:g}, {h:g}], window {width:g}x{height:g}"
+
+    return Check(f"{shot}: {key!r} covers the whole window", (shot,), run)
+
+
 def find_center(tree: dict, label: str) -> tuple[float, float] | None:
     """Centre, in points, of the button or radio called `label`, for a scripted tap."""
     for e in tree.get("elements", []):

@@ -4,9 +4,8 @@ use rune_kit::{Button, ButtonVariant, Kit, SegmentedControl};
 use crate::models::diagnosis::DiagnosticStatus;
 use crate::ui::app::MyAsusState;
 use crate::ui::theme::{
-    asus_blue, card_heading, font_mono, font_style, left_blue_card, oled_teal_card, page_title,
-    rgb, status_danger, status_ok, status_pill, status_warn, surface_card, text_muted,
-    text_primary,
+    asus_blue, card_heading, font_mono, font_style, page_title, rgb, status_danger, status_ok,
+    status_pill, status_warn, surface_card, text_muted, text_primary,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -214,13 +213,13 @@ fn render_checkup(s: &MyAsusState, k: &Kit) -> El {
                     .w_full(),
             );
         }
-        list = list.child(left_blue_card(children));
+        list = list.child(surface_card(children));
     }
     list
 }
 
 fn render_oled_tests(s: &MyAsusState, k: &Kit) -> El {
-    let oled_test_card = oled_teal_card(vec![
+    let oled_test_card = surface_card(vec![
         card_heading(
             "OLED Burn-In, Subpixel & 5% Gray Uniformity Check",
             Some("Cycles Red, Green, Blue, 5% Dark Gray (for OLED vertical banding), White, and True Black full-screen frames."),
@@ -275,7 +274,7 @@ fn render_oled_tests(s: &MyAsusState, k: &Kit) -> El {
         .w_full()
         .gap(12.0)
         .child(oled_test_card)
-        .child(left_blue_card(speaker_children))
+        .child(surface_card(speaker_children))
 }
 
 fn render_updates(s: &MyAsusState, k: &Kit) -> El {
@@ -336,7 +335,7 @@ fn render_updates(s: &MyAsusState, k: &Kit) -> El {
         ]));
     } else {
         for item in &report.items {
-            body = body.child(left_blue_card(vec![
+            body = body.child(surface_card(vec![
                 row()
                     .w_full()
                     .center_y()

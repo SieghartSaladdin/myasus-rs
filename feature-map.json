@@ -6,7 +6,11 @@
     {
       "id": "oled-care-page",
       "user_name": "OLED Care page",
-      "aliases": ["oled care", "halaman oled", "dimming page"],
+      "aliases": [
+        "oled care",
+        "halaman oled",
+        "dimming page"
+      ],
       "entry_point": "App start page; sidebar item 'OLED Care'",
       "selectors_or_anchors": [
         "key=nav-OLED Care",
@@ -20,12 +24,19 @@
         "The run emits no panic or error output"
       ],
       "verify_command": "python3 scripts/verify.py run oled-care-page",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "oled-sub-tabs",
       "user_name": "OLED Care sub-tabs (Dimming & Care Pro / Pixel Refresh & Shift / System & Screensaver)",
-      "aliases": ["tab oled", "pixel refresh tab", "sub tab"],
+      "aliases": [
+        "tab oled",
+        "pixel refresh tab",
+        "sub tab"
+      ],
       "entry_point": "OLED Care page, segmented control under the panel card",
       "selectors_or_anchors": [
         "role=radio label=Pixel Refresh & Shift",
@@ -39,12 +50,19 @@
         "The run emits no panic or error output"
       ],
       "verify_command": "python3 scripts/verify.py run oled-sub-tabs",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "dashboard-page",
       "user_name": "Dashboard (Live Telemetry)",
-      "aliases": ["dashboard", "telemetry", "home"],
+      "aliases": [
+        "dashboard",
+        "telemetry",
+        "home"
+      ],
       "entry_point": "Sidebar item 'Dashboard'",
       "selectors_or_anchors": [
         "key=nav-Dashboard",
@@ -58,12 +76,19 @@
         "The run emits no panic or error output"
       ],
       "verify_command": "python3 scripts/verify.py run dashboard-page",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "hardware-power-page",
       "user_name": "Hardware & Power (Battery, Fan & Audio)",
-      "aliases": ["hardware", "power", "battery charge limit"],
+      "aliases": [
+        "hardware",
+        "power",
+        "battery charge limit"
+      ],
       "entry_point": "Sidebar item 'Hardware & Power'",
       "selectors_or_anchors": [
         "key=nav-Hardware & Power",
@@ -76,12 +101,19 @@
         "The run emits no panic or error output"
       ],
       "verify_command": "python3 scripts/verify.py run hardware-power-page",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "diagnosis-updates-page",
       "user_name": "Diagnosis & Updates (Checkup & LVFS/APT)",
-      "aliases": ["diagnosis", "checkup", "updates"],
+      "aliases": [
+        "diagnosis",
+        "checkup",
+        "updates"
+      ],
       "entry_point": "Sidebar item 'Diagnosis & Updates'",
       "selectors_or_anchors": [
         "key=nav-Diagnosis & Updates",
@@ -96,12 +128,19 @@
         "The run emits no panic or error output"
       ],
       "verify_command": "python3 scripts/verify.py run diagnosis-updates-page",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "system-settings-page",
       "user_name": "System & Settings (Specs, Daemon & Export)",
-      "aliases": ["settings", "system", "refresh interval"],
+      "aliases": [
+        "settings",
+        "system",
+        "refresh interval"
+      ],
       "entry_point": "Sidebar item 'System & Settings'",
       "selectors_or_anchors": [
         "key=nav-System & Settings",
@@ -114,12 +153,19 @@
         "The run emits no panic or error output"
       ],
       "verify_command": "python3 scripts/verify.py run system-settings-page",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "page-switch-transition",
       "user_name": "Page switch animation",
-      "aliases": ["transisi", "page transition", "animasi pindah halaman"],
+      "aliases": [
+        "transisi",
+        "page transition",
+        "animasi pindah halaman"
+      ],
       "entry_point": "Click any sidebar item",
       "selectors_or_anchors": [
         "key=page-Dashboard",
@@ -131,12 +177,19 @@
         "Exactly one page body exists at every captured moment"
       ],
       "verify_command": "python3 scripts/verify.py run page-switch-transition",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "dimming-state-display",
       "user_name": "Flicker-Free Dimming value shown in the UI",
-      "aliases": ["dimming 54%", "oled guard", "nilai dimming"],
+      "aliases": [
+        "dimming 54%",
+        "oled guard",
+        "nilai dimming"
+      ],
       "entry_point": "OLED Care page and sidebar 'OLED Guard' footer",
       "selectors_or_anchors": [
         "key=oled-dim-slider",
@@ -148,12 +201,19 @@
         "Verification runs in a sandbox with no display, so the real screen and settings are never touched"
       ],
       "verify_command": "python3 scripts/verify.py run dimming-state-display",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     },
     {
       "id": "oled-screensaver-preview",
       "user_name": "OLED screensaver",
-      "aliases": ["screensaver", "orbit", "screen saver oled"],
+      "aliases": [
+        "screensaver",
+        "orbit",
+        "screen saver oled"
+      ],
       "entry_point": "OLED Care page, 'Screensaver' button (scene screensaver-live)",
       "selectors_or_anchors": [
         "key=oled-screensaver-root",
@@ -161,12 +221,42 @@
         "text=ASUS OLED Care • Click or press Esc to wake"
       ],
       "key_invariants": [
-        "The screensaver overlay and its orbit rings are drawn",
+        "The screensaver overlay covers the whole window, and its orbit rings are drawn",
         "The orbit ring has moved between 1s and 2s, so the animation is driven every frame",
         "The wake-up hint is shown"
       ],
       "verify_command": "python3 scripts/verify.py run oled-screensaver-preview",
-      "artifacts": ["screenshot", "element-tree"]
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
+    },
+    {
+      "id": "min-window-layout",
+      "user_name": "Layout at the smallest window (920x600)",
+      "aliases": [
+        "ukuran minimum",
+        "teks terpotong",
+        "jendela kecil"
+      ],
+      "entry_point": "Every page at the app's minimum window size",
+      "selectors_or_anchors": [
+        "key=nav-OLED Care",
+        "key=nav-Dashboard",
+        "key=nav-Hardware & Power",
+        "key=nav-Diagnosis & Updates",
+        "key=nav-System & Settings"
+      ],
+      "key_invariants": [
+        "No text runs past the right edge of the window or of the card that holds it, on every page",
+        "Long titles, descriptions and values wrap instead of being cut off",
+        "The run emits no panic or error output"
+      ],
+      "verify_command": "python3 scripts/verify.py run min-window-layout",
+      "artifacts": [
+        "screenshot",
+        "element-tree"
+      ]
     }
   ]
 }

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import verify
 from verify_checks import (evaluate, find_center, has_key, has_text, moved, no_key,
-                           opacity_between, page_keys, text_count)
+                           opacity_between, overflowing_text, page_keys, text_count, text_fits, covers_window)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -62,6 +62,23 @@ class ChecksTest(unittest.TestCase):
         result = evaluate([moved("s", "s", "ring", 1)], bad)[0]
         self.assertFalse(result["pass"])
         self.assertIn("raised", result["detail"])
+
+    def test_text_past_the_window_or_its_card_is_reported(self):
+        card = {"path": "root/card", "radius": 10.0, "rect": [100, 0, 300, 50], "text": None}
+        inside = {"path": "root/card/a", "rect": [110, 5, 100, 10], "text": "fits"}
+        past_card = {"path": "root/card/b", "rect": [110, 20, 320, 10], "text": "spills out of the card"}
+        past_window = {"path": "root/c", "rect": [900, 0, 100, 10], "text": "off screen"}
+        found = overflowing_text({"elements": [card, inside, past_card, past_window]}, 920)
+        self.assertEqual([(t, where) for t, where, _ in found],
+                         [("spills out of the card", "card"), ("off screen", "window")])
+        self.assertTrue(evaluate([text_fits("s", 920)], {"s": {"elements": [card, inside]}})[0]["pass"])
+        self.assertFalse(evaluate([text_fits("s", 920)], {"s": {"elements": [past_window]}})[0]["pass"])
+
+    def test_an_overlay_beside_the_window_does_not_cover_it(self):
+        on_screen = {"s": tree(el(key="ov", rect=(0, 0, 1160, 760)))}
+        beside = {"s": tree(el(key="ov", rect=(1160, 0, 1160, 760)))}
+        self.assertTrue(evaluate([covers_window("s", "ov", 1160, 760)], on_screen)[0]["pass"])
+        self.assertFalse(evaluate([covers_window("s", "ov", 1160, 760)], beside)[0]["pass"])
 
     def test_label_centre_for_scripted_taps(self):
         t = tree(el(role="radio", label="Pixel Refresh & Shift", rect=(100, 200, 40, 20)))

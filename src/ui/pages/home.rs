@@ -4,9 +4,9 @@ use rune_kit::{Button, ButtonVariant, ControlSize, Kit};
 use crate::ui::app::MyAsusState;
 use crate::ui::sidebar::NavPage;
 use crate::ui::theme::{
-    asus_blue, bg_card, bg_elevated, font_mono, font_style, meter_bar, oled_teal, oled_teal_card,
-    rgb, status_danger, status_ok, status_pill, status_warn, surface_card, text_muted,
-    text_primary,
+    asus_blue, asus_blue_soft, bg_card, bg_elevated, font_mono, font_style, meter_bar,
+    oled_teal, rgb, status_danger, status_ok, status_pill, status_warn, surface_card,
+    text_muted, text_primary, value_pill,
 };
 
 pub fn render_dashboard(s: &MyAsusState, k: &Kit) -> El {
@@ -34,7 +34,7 @@ pub fn render_dashboard(s: &MyAsusState, k: &Kit) -> El {
                                 .font(font_style(20.0, 750.0))
                                 .color(text_primary()),
                         )
-                        .child(status_pill(s.device.product_family.clone(), asus_blue())),
+                        .child(value_pill(s.device.product_family.clone(), asus_blue_soft())),
                 )
                 .child(
                     text(format!(
@@ -177,7 +177,7 @@ pub fn render_dashboard(s: &MyAsusState, k: &Kit) -> El {
                 .unwrap_or_else(|| "Auto".into()),
         ))
         .font(font_mono(11.5, 500.0))
-        .color(text_muted()),
+        .color(text_muted()).wrap().w_full(),
     ])
     .grow(1.0)
     .shrink();
@@ -228,7 +228,7 @@ pub fn render_dashboard(s: &MyAsusState, k: &Kit) -> El {
     .grow(1.0)
     .shrink();
 
-    let oled_strip = oled_teal_card(vec![row()
+    let oled_strip = surface_card(vec![row()
         .w_full()
         .center_y()
         .justify_between()

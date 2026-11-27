@@ -4,8 +4,8 @@ use rune_kit::{Button, ButtonVariant, ControlSize, Kit, SegmentedControl, Slider
 use crate::models::hardware::{BatteryChargeMode, FanProfile};
 use crate::ui::app::MyAsusState;
 use crate::ui::theme::{
-    asus_blue, card_heading, font_mono, font_style, left_blue_card, page_title, status_ok,
-    status_pill, text_muted, text_primary,
+    asus_blue_soft, card_heading, font_mono, font_style, page_title, status_ok, surface_card,
+    text_muted, text_primary, value_pill,
 };
 
 pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
@@ -34,7 +34,7 @@ pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
         );
     }
 
-    let battery_card = left_blue_card(vec![
+    let battery_card = surface_card(vec![
         row()
             .w_full()
             .center_y()
@@ -43,9 +43,9 @@ pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
                 "Battery Health Charging",
                 Some("Writes /sys/class/power_supply/BAT*/charge_control_end_threshold."),
             ))
-            .child(status_pill(
+            .child(value_pill(
                 format!("Limit: {}%", s.hw.battery_charge_limit),
-                asus_blue(),
+                asus_blue_soft(),
             )),
         mode_row,
         row()
@@ -93,7 +93,7 @@ pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
         FanProfile::Performance => 2,
     };
 
-    let thermal_card = left_blue_card(vec![
+    let thermal_card = surface_card(vec![
         card_heading(
             "Fan & Thermal Profile + CPU Governor",
             Some("Controls /sys/firmware/acpi/platform_profile and Linux cpufreq scaling_governor."),
@@ -118,7 +118,7 @@ pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
                     })
                     .build(k),
             )
-            .child(status_pill(
+            .child(value_pill(
                 format!("Governor: {}", s.cpu_governor),
                 status_ok(),
             )),
@@ -129,7 +129,7 @@ pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
             .child(gov_btn("performance", s.cpu_governor == "performance", k)),
     ]);
 
-    let kbd_audio_card = left_blue_card(vec![
+    let kbd_audio_card = surface_card(vec![
         card_heading(
             "Keyboard Backlight & PulseAudio Booster",
             Some("Controls /sys/class/leds/asus::kbd_backlight and PulseAudio/PipeWire over-amplification."),
@@ -194,7 +194,7 @@ pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
         .w_full()
         .gap(14.0)
         .child(page_title(
-            "Hardware & Power (Linux Verified)",
+            "Hardware & Power",
             "Only controls backed by real sysfs, ACPI platform_profile, LED, and PulseAudio interfaces on this machine.",
         ))
         .child(battery_card)
@@ -280,7 +280,7 @@ pub fn render_hardware_power(s: &MyAsusState, k: &Kit) -> El {
                     ),
             );
         }
-        page = page.child(left_blue_card(extras));
+        page = page.child(surface_card(extras));
     }
 
     page

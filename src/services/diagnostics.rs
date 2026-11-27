@@ -216,7 +216,7 @@ fn check_storage(t: &TelemetrySnapshot) -> DiagnosticItem {
 
     for d in &t.disks {
         details.push(format!(
-            "{} — {:.1}/{:.1} GB ({:.0}%)",
+            "{}: {:.1}/{:.1} GB ({:.0}%)",
             d.mount_point, d.used_gb, d.total_gb, d.usage_percent
         ));
         if d.usage_percent >= 92.0 {

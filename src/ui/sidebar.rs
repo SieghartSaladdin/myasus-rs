@@ -18,11 +18,13 @@ pub enum NavPage {
 
 impl NavPage {
     pub fn items() -> &'static [(NavPage, &'static str, &'static str, &'static str)] {
+        // Each glyph names the page: half-lit circle (dimming), house (overview), bolt (power),
+        // circular arrow (re-check and update), gear (settings).
         &[
-            (NavPage::OledCare, "◈", "OLED Care", "Dimming, Shift & Saver"),
+            (NavPage::OledCare, "◐", "OLED Care", "Dimming, Shift & Saver"),
             (NavPage::Dashboard, "⌂", "Dashboard", "Live Telemetry"),
             (NavPage::HardwarePower, "⚡", "Hardware & Power", "Battery, Fan & Audio"),
-            (NavPage::DiagnosisUpdates, "✦", "Diagnosis & Updates", "Checkup & LVFS/APT"),
+            (NavPage::DiagnosisUpdates, "⟳", "Diagnosis & Updates", "Checkup & LVFS/APT"),
             (NavPage::SystemSettings, "⚙", "System & Settings", "Specs, Daemon & Export"),
         ]
     }
@@ -202,7 +204,7 @@ fn nav_item(
                 .child(
                     text(glyph)
                         .font(font_style(13.5, 700.0))
-                        .color(if active { Color::WHITE } else { text_muted() }),
+                        .color(if active { bg_canvas() } else { text_muted() }),
                 ),
         )
         .child(
