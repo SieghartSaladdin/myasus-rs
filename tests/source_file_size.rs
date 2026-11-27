@@ -18,7 +18,7 @@ const LEGACY: &[(&str, usize)] = &[
     ("src/platform/linux_hw.rs", 631),
     ("src/platform/windows_hw.rs", 582),
     ("src/ui/app.rs", 579),
-    ("src/ui/pages/home.rs", 400),
+    ("src/ui/pages/home.rs", 395),
     ("src/services/diagnostics.rs", 391),
     ("src/ui/pages/diagnosis.rs", 373),
     ("src/services/display_prefs.rs", 332),

@@ -506,7 +506,7 @@ pub fn run_rune_app(
         scenes: &[
             ("oled", |s| {
                 s.active_page = NavPage::OledCare;
-                s.oled_tab = OledSubTab::DimmingAndCarePro;
+                s.oled_tab = OledSubTab::DimmingAndCare;
             }),
             ("pixel", |s| {
                 s.active_page = NavPage::OledCare;
@@ -524,9 +524,9 @@ pub fn run_rune_app(
             ("power", |s| s.active_page = NavPage::HardwarePower),
         ],
         ..AppSpec::new(
-            "MyASUS Linux: OLED Care (Rune)",
+            "MyASUS Linux",
             (1160.0, 760.0),
-            || MyAsusState::new(NavPage::OledCare, OledSubTab::DimmingAndCarePro),
+            || MyAsusState::new(NavPage::OledCare, OledSubTab::DimmingAndCare),
             view,
         )
     };

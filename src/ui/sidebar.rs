@@ -31,33 +31,21 @@ impl NavPage {
 }
 
 pub fn render_sidebar(s: &MyAsusState) -> El {
-    let brand_badge = el()
-        .size(36.0, 36.0)
-        .radius(10.0)
-        .gradient(asus_blue(), oled_teal())
-        .center()
-        .child(text("A").font(font_style(17.0, 800.0)).color(Color::WHITE));
-
-    let header = row()
+    // No logo file exists yet, so the product name stands in as a wordmark.
+    let header = col()
         .w_full()
-        .center_y()
-        .gap(11.0)
+        .gap(2.0)
         .px(16.0)
         .py(8.0)
-        .child(brand_badge)
         .child(
-            col()
-                .gap(1.0)
-                .child(
-                    text("MyASUS Linux")
-                        .font(font_style(14.5, 750.0))
-                        .color(text_primary()),
-                )
-                .child(
-                    text("OLED Care • Rune GPU")
-                        .font(font_style(10.5, 500.0))
-                        .color(oled_teal()),
-                ),
+            text("MyASUS Linux")
+                .font(font_style(17.0, 750.0))
+                .color(text_primary()),
+        )
+        .child(
+            text("Unofficial, open source")
+                .font(font_style(10.5, 500.0))
+                .color(text_muted()),
         );
 
     let mut nav = col().w_full().px(10.0).gap(4.0);

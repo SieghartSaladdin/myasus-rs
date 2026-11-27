@@ -21,7 +21,7 @@ fn main() {
 
     let (start_page, start_oled_tab) = match args.page.as_deref() {
         Some("oled") | Some("audio-visual") | Some("dimming") => {
-            (NavPage::OledCare, OledSubTab::DimmingAndCarePro)
+            (NavPage::OledCare, OledSubTab::DimmingAndCare)
         }
         Some("pixel") | Some("shift") | Some("refresh") => {
             (NavPage::OledCare, OledSubTab::PixelRefreshAndShift)
@@ -29,17 +29,17 @@ fn main() {
         Some("screensaver") | Some("display") => {
             (NavPage::OledCare, OledSubTab::SystemAndScreensaver)
         }
-        Some("home") | Some("dashboard") => (NavPage::Dashboard, OledSubTab::DimmingAndCarePro),
+        Some("home") | Some("dashboard") => (NavPage::Dashboard, OledSubTab::DimmingAndCare),
         Some("power") | Some("hardware") | Some("device-settings") => {
-            (NavPage::HardwarePower, OledSubTab::DimmingAndCarePro)
+            (NavPage::HardwarePower, OledSubTab::DimmingAndCare)
         }
         Some("diagnosis") | Some("updates") => {
-            (NavPage::DiagnosisUpdates, OledSubTab::DimmingAndCarePro)
+            (NavPage::DiagnosisUpdates, OledSubTab::DimmingAndCare)
         }
         Some("settings") | Some("system-info") | Some("system") => {
-            (NavPage::SystemSettings, OledSubTab::DimmingAndCarePro)
+            (NavPage::SystemSettings, OledSubTab::DimmingAndCare)
         }
-        _ => (NavPage::OledCare, OledSubTab::DimmingAndCarePro),
+        _ => (NavPage::OledCare, OledSubTab::DimmingAndCare),
     };
 
     run_rune_app(start_page, start_oled_tab, args.screenshot, args.rune_args);

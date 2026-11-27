@@ -135,6 +135,9 @@ pub fn render_dashboard(s: &MyAsusState, k: &Kit) -> El {
         .color(text_muted()),
         meter_bar(s.telemetry.cpu_usage_percent / 100.0, cpu_color),
         spark,
+        text(format!("CPU load, last {} s", s.cpu_history.len() as u64 * s.config.refresh_interval_secs))
+            .font(font_style(11.0, 450.0))
+            .color(text_muted()),
     ])
     .grow(1.0)
     .shrink();
@@ -165,16 +168,8 @@ pub fn render_dashboard(s: &MyAsusState, k: &Kit) -> El {
         meter_bar(s.telemetry.memory_usage_percent / 100.0, status_ok()),
         text(format!(
             "CPU Fan: {}  •  GPU Fan: {}",
-            s.telemetry
-                .fans
-                .cpu_fan_rpm
-                .map(|r| format!("{r} RPM"))
-                .unwrap_or_else(|| "Auto".into()),
-            s.telemetry
-                .fans
-                .gpu_fan_rpm
-                .map(|r| format!("{r} RPM"))
-                .unwrap_or_else(|| "Auto".into()),
+            s.telemetry.fans.cpu_fan_rpm.map_or("Auto".into(), |r| format!("{r} RPM")),
+            s.telemetry.fans.gpu_fan_rpm.map_or("Auto".into(), |r| format!("{r} RPM")),
         ))
         .font(font_mono(11.5, 500.0))
         .color(text_muted()).wrap().w_full(),

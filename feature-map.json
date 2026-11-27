@@ -16,11 +16,11 @@
         "key=nav-OLED Care",
         "key=page-OledCare",
         "key=oled-dim-slider",
-        "text=ASUS OLED Care (Linux Native)"
+        "text=Linux OLED protections: PWM-free dimming, Anti-ABL"
       ],
       "key_invariants": [
         "The OLED Care page is the single visible page body",
-        "Its title and the Flicker-Free Dimming slider are shown",
+        "Its description and the Flicker-Free Dimming slider are shown",
         "The run emits no panic or error output"
       ],
       "verify_command": "python3 scripts/verify.py run oled-care-page",
@@ -31,7 +31,7 @@
     },
     {
       "id": "oled-sub-tabs",
-      "user_name": "OLED Care sub-tabs (Dimming & Care Pro / Pixel Refresh & Shift / System & Screensaver)",
+      "user_name": "OLED Care sub-tabs (Dimming & Care / Pixel Refresh & Shift / System & Screensaver)",
       "aliases": [
         "tab oled",
         "pixel refresh tab",

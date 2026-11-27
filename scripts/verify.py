@@ -81,7 +81,7 @@ PAGES = (("oled", "OLED Care"), ("dashboard", "Dashboard"), ("hardware", "Hardwa
 FEATURES: dict[str, Feature] = {
     "oled-care-page": Feature((Shot("start"),), (
         has_key("start", "page-OledCare"), page_keys("start"), has_key("start", "nav-OLED Care"),
-        has_text("start", "ASUS OLED Care (Linux Native)"), has_key("start", "oled-dim-slider"),
+        has_text("start", "PWM-free dimming, Anti-ABL"), has_key("start", "oled-dim-slider"),
         text_fits("start", 1160))),
     "min-window-layout": Feature(
         tuple(Shot(n, tap_key=f"nav-{label}", size=MIN_WINDOW) for n, label in PAGES),
@@ -89,7 +89,7 @@ FEATURES: dict[str, Feature] = {
     "oled-sub-tabs": Feature(
         (Shot("pixel", tap_label="Pixel Refresh & Shift"), Shot("saver", tap_label="System & Screensaver")),
         (has_key("pixel", "oled-tab-1"), no_key("pixel", "oled-tab-0"),
-         has_text("pixel", "Pixel Shift (Real X11 RandR Translation)"),
+         has_text("pixel", "Subtly translates the image by integer pixels"),
          has_key("saver", "oled-tab-2"), no_key("saver", "oled-tab-1"))),
     "dashboard-page": page_feature("Dashboard", "page-Dashboard", ("CPU & GPU", "Storage Overview")),
     "hardware-power-page": page_feature("Hardware & Power", "page-HardwarePower", ("Battery Health Charging",)),

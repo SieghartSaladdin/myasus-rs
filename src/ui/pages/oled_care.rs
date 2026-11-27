@@ -12,7 +12,7 @@ use crate::ui::theme::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OledSubTab {
-    DimmingAndCarePro,
+    DimmingAndCare,
     PixelRefreshAndShift,
     SystemAndScreensaver,
 }
@@ -20,7 +20,7 @@ pub enum OledSubTab {
 impl OledSubTab {
     fn index(self) -> usize {
         match self {
-            Self::DimmingAndCarePro => 0,
+            Self::DimmingAndCare => 0,
             Self::PixelRefreshAndShift => 1,
             Self::SystemAndScreensaver => 2,
         }
@@ -30,7 +30,7 @@ impl OledSubTab {
         match i {
             1 => Self::PixelRefreshAndShift,
             2 => Self::SystemAndScreensaver,
-            _ => Self::DimmingAndCarePro,
+            _ => Self::DimmingAndCare,
         }
     }
 }
@@ -135,7 +135,7 @@ pub fn render_oled_care(s: &MyAsusState, k: &Kit) -> El {
 
     let sub_tabs = SegmentedControl::new(
         &[
-            "Dimming & Care Pro",
+            "Dimming & Care",
             "Pixel Refresh & Shift",
             "System & Screensaver",
         ],
@@ -148,7 +148,7 @@ pub fn render_oled_care(s: &MyAsusState, k: &Kit) -> El {
     .build(k);
 
     let tab_body = match s.oled_tab {
-        OledSubTab::DimmingAndCarePro => render_dimming_and_care_pro(s, k),
+        OledSubTab::DimmingAndCare => render_dimming_and_care(s, k),
         OledSubTab::PixelRefreshAndShift => render_pixel_refresh_and_shift(s, k),
         OledSubTab::SystemAndScreensaver => render_system_and_screensaver(s, k),
     };
@@ -158,7 +158,7 @@ pub fn render_oled_care(s: &MyAsusState, k: &Kit) -> El {
         .w_full()
         .gap(14.0)
         .child(page_title(
-            "ASUS OLED Care (Linux Native)",
+            "OLED Care",
             "Linux OLED protections: PWM-free dimming, Anti-ABL, xrandr Pixel Shift, Dark Mode, DPMS & GPU Screensaver.",
         ))
         .child(panel_hero)
@@ -166,7 +166,7 @@ pub fn render_oled_care(s: &MyAsusState, k: &Kit) -> El {
         .child(tab_body)
 }
 
-fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
+fn render_dimming_and_care(s: &MyAsusState, k: &Kit) -> El {
     let p = &s.display_prefs;
 
     // 1. Flicker-Free Dimming + PWM-Safe Backlight Lock + Uniform Brightness (Anti-ABL)
@@ -455,7 +455,7 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
             ),
     ]);
 
-    // 3. Away / Idle Auto-Dim & External ROG OLED Care Pro Monitor Status
+    // 3. Away / Idle Auto-Dim & External ROG Monitor Status
     let away_idx = match p.away_dim_secs {
         0..=45 => 0,
         46..=75 => 1,
@@ -474,7 +474,7 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
             .center_y()
             .justify_between()
             .child(card_heading(
-                "Away Auto-Dim & ROG OLED Care Pro",
+                "Away Auto-Dim & ROG Monitor",
                 Some("Automatically dims the OLED when idle (software proximity fallback on laptops) and probes external ROG monitors."),
             ))
             .child(rog_status_pill),
@@ -539,7 +539,7 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
             .child(
                 text(match &s.panel_info.external_rog_monitor {
                     Some(name) if s.panel_info.ddcutil_available => format!(
-                        "External ROG OLED ({name}) connected with ddcutil ready: hardware OLED Care Pro controls available via DDC/CI."
+                        "External ROG OLED ({name}) connected with ddcutil ready: hardware OLED Care controls available via DDC/CI."
                     ),
                     Some(name) => format!(
                         "External ROG OLED ({name}) detected! Install `sudo apt install ddcutil` to control hardware Neo Proximity / Logo Dimming via DDC/CI."
@@ -581,7 +581,7 @@ fn render_pixel_refresh_and_shift(s: &MyAsusState, k: &Kit) -> El {
             .center_y()
             .justify_between()
             .child(card_heading(
-                "Pixel Shift (Real X11 RandR Translation)",
+                "Pixel Shift",
                 Some("Subtly translates the image by integer pixels (1:1 sharp, zero blur) in an 8-point orbit so edges & icons age evenly."),
             ))
             .child(value_pill(
