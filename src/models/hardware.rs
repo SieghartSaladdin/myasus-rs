@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,34 +117,12 @@ pub enum ColorGamut {
     DisplayP3,
 }
 
-impl ColorGamut {
-    pub fn label(&self) -> &'static str {
-        match self {
-            Self::Native => "Native",
-            Self::SRgb => "sRGB",
-            Self::DciP3 => "DCI-P3",
-            Self::DisplayP3 => "Display P3",
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskFirstMode {
     Normal,
     Productivity,
     Gaming,
     Streaming,
-}
-
-impl TaskFirstMode {
-    pub fn label(&self) -> &'static str {
-        match self {
-            Self::Normal => "Normal",
-            Self::Productivity => "Productivity",
-            Self::Gaming => "Gaming",
-            Self::Streaming => "Media & Streaming",
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

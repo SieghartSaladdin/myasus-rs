@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,21 +57,4 @@ pub struct ProcessEntry {
     pub name: String,
     pub cpu_percent: f32,
     pub memory_mb: f64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EventSeverity {
-    Info,
-    Success,
-    Warning,
-    Alert,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SystemEvent {
-    pub timestamp: String,
-    pub title: String,
-    pub detail: String,
-    pub severity: EventSeverity,
-    pub read: bool,
 }

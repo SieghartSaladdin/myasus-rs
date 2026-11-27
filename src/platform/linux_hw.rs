@@ -469,9 +469,7 @@ impl PlatformBackend for LinuxAsusBackend {
             prefs.splendid_mode = mode;
             prefs.eye_care_level = clamped_lvl;
         }
-        let msg = linux_oled::apply_linux_display_pipeline(&prefs)?;
-        let _ = prefs.save();
-        Ok(msg)
+        crate::platform::display_sync::save_then_apply(&prefs)
     }
 
     fn set_display_brightness(&self, percent: u8) -> Result<String, String> {
@@ -499,8 +497,10 @@ impl PlatformBackend for LinuxAsusBackend {
         let raw = ((hw_pct.clamp(5, 100) as f32 / 100.0) * max as f32).round() as u32;
         sysfs::write_sysfs_privileged(&dir.join("brightness"), &raw.to_string())?;
         if split_engaged {
-            let _ = linux_oled::apply_linux_display_pipeline(&prefs);
-            let _ = prefs.save();
+            crate::services::failures::log_if_err(
+                "apply dimming",
+                crate::platform::display_sync::save_then_apply(&prefs),
+            );
             Ok(format!(
                 "Flicker-Free Brightness {percent}% → Hardware locked at {hw_pct}% + Gamma Dimming {sw_pct}%"
             ))
@@ -548,11 +548,7 @@ impl PlatformBackend for LinuxAsusBackend {
         if prefs.pwm_safe_lock && clamped < 100 {
             Self::ensure_backlight_floor_unprivileged(prefs.pwm_safe_floor);
         }
-        let msg = linux_oled::apply_linux_display_pipeline(&prefs)?;
-        match prefs.save() {
-            Ok(()) => Ok(msg),
-            Err(e) => Ok(format!("{msg} (warning: not persisted: {e})")),
-        }
+        crate::platform::display_sync::save_then_apply(&prefs)
     }
 
     fn set_oled_pwm_safe_lock(&self, enabled: bool, floor: u8) -> Result<String, String> {

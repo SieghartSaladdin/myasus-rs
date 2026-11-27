@@ -345,7 +345,7 @@ fn spawn_telemetry_worker(
                 // Keep Flicker-Free Dimming applied even without the login daemon: csd-color
                 // resets the gamma ramp after every RandR change (Pixel Shift, resume, unlock).
                 #[cfg(target_os = "linux")]
-                let _ = crate::platform::linux_oled::reassert_display_pipeline_if_reset();
+                let _ = crate::platform::display_sync::reassert_display_pipeline_if_reset();
                 let update = TelemetryUpdate::collect(&mut collector, backend.as_ref());
                 let interval = Arc::clone(&interval);
                 handle.update(move |s: &mut MyAsusState, _tx: &mut Tx| {

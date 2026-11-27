@@ -1,5 +1,7 @@
 pub mod fallback_hw;
 #[cfg(target_os = "linux")]
+pub mod display_sync;
+#[cfg(target_os = "linux")]
 pub mod linux_extra;
 #[cfg(target_os = "linux")]
 pub mod linux_hw;

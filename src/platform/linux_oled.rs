@@ -667,33 +667,6 @@ pub fn apply_linux_display_pipeline(prefs: &DisplayPrefs) -> Result<String, Stri
     }
 }
 
-/// Re-applies Flicker-Free Dimming + Splendid gamma when something reset the CRTC gamma ramp.
-///
-/// On Cinnamon, `csd-color` reloads the default (identity) ramp about a second after every RandR
-/// change: each Pixel Shift `--transform`, resume from suspend, unlock, DPMS wake or hotplug.
-/// That wiped the dimming and left the panel at full brightness until something re-applied it.
-/// Returns the apply message when it had to re-apply.
-pub fn reassert_display_pipeline_if_reset() -> Option<String> {
-    let prefs = DisplayPrefs::load();
-    let neutral = prefs.flicker_free_dimming >= 100
-        && prefs.splendid_gamma_rgb() == (1.0, 1.0, 1.0);
-    if neutral {
-        // Nothing of ours to keep on the ramp; leave other tools (night light) alone.
-        return None;
-    }
-    let output = primary_xrandr_output()?;
-    let brightness = prefs.flicker_free_dimming.clamp(30, 100) as f32 / 100.0;
-    let intact = crate::platform::x11_gamma::output_gamma_matches(
-        &output,
-        prefs.splendid_gamma_rgb(),
-        brightness,
-    )?;
-    if intact {
-        return None;
-    }
-    apply_linux_display_pipeline(&prefs).ok()
-}
-
 /// After our own RandR change (Pixel Shift), `csd-color` resets the ramp asynchronously, so
 /// check a few times over the next seconds and restore the dimming as soon as it is wiped.
 fn schedule_display_pipeline_guard() {
@@ -702,7 +675,7 @@ fn schedule_display_pipeline_guard() {
         .spawn(|| {
             for delay_ms in [1_200u64, 2_500, 5_000] {
                 std::thread::sleep(std::time::Duration::from_millis(delay_ms));
-                let _ = reassert_display_pipeline_if_reset();
+                let _ = crate::platform::display_sync::reassert_display_pipeline_if_reset();
             }
         });
 }
@@ -745,7 +718,7 @@ pub fn run_linux_oled_daemon(initial_delay_secs: u64) -> Result<(), String> {
             crate::services::failures::log_if_err("recenter Pixel Shift", reset_linux_pixel_shift());
         }
 
-        let _ = reassert_display_pipeline_if_reset();
+        let _ = crate::platform::display_sync::reassert_display_pipeline_if_reset();
 
         std::thread::sleep(Duration::from_secs(GAMMA_GUARD_SECS));
     }
