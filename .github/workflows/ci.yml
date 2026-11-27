@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: "1.100.0"
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - name: Install system libraries
+        run: >
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends
+          build-essential pkg-config libx11-dev libxcb-render0-dev libxcb-shape0-dev
+          libxcb-xfixes0-dev libxkbcommon-dev libwayland-dev libgl1-mesa-dev libssl-dev
+
+      - name: Install Rust
+        run: rustup toolchain install "$RUST_VERSION" --profile minimal && rustup default "$RUST_VERSION"
+
+      - uses: Swatinem/rust-cache@v2.9.3
+
+      # Includes tests/no_swallowed_errors.rs, which rejects new `let _ = <call>` in src/.
+      - name: Test
+        run: cargo test --locked

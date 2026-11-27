@@ -93,7 +93,10 @@ pub struct MyAsusState {
 impl MyAsusState {
     pub fn new(start_page: NavPage, start_oled_tab: OledSubTab) -> Self {
         let backend: Arc<dyn PlatformBackend> = Arc::from(create_backend());
-        let _ = crate::platform::restore_saved_display_prefs();
+        crate::services::failures::log_if_err(
+            "restore saved display preferences",
+            crate::platform::restore_saved_display_prefs(),
+        );
 
         let mut collector = TelemetryCollector::new();
         let config = AppConfig::load();

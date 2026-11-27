@@ -722,7 +722,10 @@ pub fn run_linux_oled_daemon(initial_delay_secs: u64) -> Result<(), String> {
         std::thread::sleep(Duration::from_secs(initial_delay_secs));
     }
 
-    let _ = crate::platform::restore_saved_display_prefs();
+    crate::services::failures::log_if_err(
+        "restore saved display preferences",
+        crate::platform::restore_saved_display_prefs(),
+    );
     let mut step: usize = 0;
     let mut last_shift = Instant::now();
 
@@ -733,10 +736,13 @@ pub fn run_linux_oled_daemon(initial_delay_secs: u64) -> Result<(), String> {
         if prefs.pixel_shift_enabled && last_shift.elapsed() >= shift_every {
             last_shift = Instant::now();
             step = (step + 1) % SHIFT_ORBIT.len();
-            let _ = apply_linux_pixel_shift(step, prefs.pixel_shift_strength);
+            crate::services::failures::log_if_err(
+                "apply Pixel Shift",
+                apply_linux_pixel_shift(step, prefs.pixel_shift_strength),
+            );
         } else if !prefs.pixel_shift_enabled && step != 0 {
             step = 0;
-            let _ = reset_linux_pixel_shift();
+            crate::services::failures::log_if_err("recenter Pixel Shift", reset_linux_pixel_shift());
         }
 
         let _ = reassert_display_pipeline_if_reset();
