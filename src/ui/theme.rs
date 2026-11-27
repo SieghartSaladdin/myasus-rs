@@ -1,5 +1,5 @@
 use rune::tok::Family;
-use rune::{Color, El, TextStyle, col, el, row, text};
+use rune::{Anim, Color, El, Spring, TextStyle, Transition, col, el, row, text};
 use rune_kit::{Kit, PaletteSeed};
 
 /// Converts an 8-bit sRGB color into Rune's linear sRGB `Color`.
@@ -212,4 +212,16 @@ pub fn kv_row(label: impl Into<String>, value: impl Into<String>) -> El {
 
 pub fn divider() -> El {
     el().w_full().h(1.0).fill(border_subtle().alpha(0.75))
+}
+
+/// Wraps a page or tab body so switching views swaps it as one keyed unit: the old view leaves
+/// at once and the new one rises 8pt while fading in. Without a distinct key per view, Rune
+/// matches the two views' elements by position and morphs unrelated cards into each other.
+pub fn swap_view(key: impl Into<String>, body: El) -> El {
+    el()
+        .key(key.into())
+        .w_full()
+        .transition(Transition::offset(0.0, 8.0).combined(Transition::opacity()))
+        .transition_motion(Spring::new(0.28, 0.0), Anim::INSTANT)
+        .child(body)
 }

@@ -1,5 +1,5 @@
 use rune::tok::motion;
-use rune::{Color, El, col, el, row, spacer, text};
+use rune::{Color, El, Tx, col, el, row, spacer, text};
 
 use crate::ui::app::MyAsusState;
 use crate::ui::theme::{
@@ -186,8 +186,12 @@ fn nav_item(
         .border(1.0, border)
         .hover_fill(hover_bg)
         .motion(motion::SNAPPY)
-        .on_press(move |s: &mut MyAsusState| {
-            s.active_page = page;
+        .on_press_tx(move |s: &mut MyAsusState, tx: &mut Tx| {
+            if s.active_page != page {
+                s.active_page = page;
+                // A new page starts at its top instead of springing from the old scroll offset.
+                tx.scroll_to_instant("main-scroll", 0.0, 0.0);
+            }
         })
         .child(
             el()

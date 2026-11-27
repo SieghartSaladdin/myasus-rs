@@ -152,6 +152,7 @@ pub fn render_oled_care(s: &MyAsusState, k: &Kit) -> El {
         OledSubTab::PixelRefreshAndShift => render_pixel_refresh_and_shift(s, k),
         OledSubTab::SystemAndScreensaver => render_system_and_screensaver(s, k),
     };
+    let tab_body = crate::ui::theme::swap_view(format!("oled-tab-{}", s.oled_tab.index()), tab_body);
 
     col()
         .w_full()

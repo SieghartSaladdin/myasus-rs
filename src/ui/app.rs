@@ -37,8 +37,8 @@ use crate::ui::{
     screensaver::{render_screensaver_canvas, ScreensaverSession},
     sidebar::{render_sidebar, NavPage},
     theme::{
-        bg_canvas, border_subtle, font_style, myasus_kit, status_danger, status_ok, text_muted,
-        text_primary,
+        bg_canvas, border_subtle, font_style, myasus_kit, status_danger, status_ok, swap_view,
+        text_muted, text_primary,
     },
 };
 
@@ -429,6 +429,8 @@ pub fn view(s: &MyAsusState, _cx: &mut Cx<MyAsusState>) -> El {
         NavPage::SystemSettings => render_system_settings(s, &k),
     };
 
+    let page_body = swap_view(format!("page-{:?}", s.active_page), page_body);
+
     let mut content_inner = col().w_full().gap(14.0).padding(22.0);
     if let Some(banner) = render_status_banner(s, &k) {
         content_inner = content_inner.child(banner);
@@ -503,7 +505,12 @@ pub fn view(s: &MyAsusState, _cx: &mut Cx<MyAsusState>) -> El {
     rune_kit::root(shell, overlays)
 }
 
-pub fn run_rune_app(start_page: NavPage, start_oled_tab: OledSubTab, screenshot: Option<PathBuf>) {
+pub fn run_rune_app(
+    start_page: NavPage,
+    start_oled_tab: OledSubTab,
+    screenshot: Option<PathBuf>,
+    extra_rune_args: Vec<String>,
+) {
     let spec = AppSpec::<MyAsusState> {
         min_size: Some((920.0, 600.0)),
         poll: Some(poll_app),
@@ -541,6 +548,7 @@ pub fn run_rune_app(start_page: NavPage, start_oled_tab: OledSubTab, screenshot:
         rune_args.push("--snap".to_string());
         rune_args.push(path.to_string_lossy().to_string());
     }
+    rune_args.extend(extra_rune_args);
 
     let app = App::new(spec)
         .color_scheme(ColorScheme::Dark)

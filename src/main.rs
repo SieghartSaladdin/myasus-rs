@@ -42,5 +42,5 @@ fn main() {
         _ => (NavPage::OledCare, OledSubTab::DimmingAndCarePro),
     };
 
-    run_rune_app(start_page, start_oled_tab, args.screenshot);
+    run_rune_app(start_page, start_oled_tab, args.screenshot, args.rune_args);
 }

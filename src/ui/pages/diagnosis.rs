@@ -123,6 +123,7 @@ pub fn render_diagnosis_updates(s: &MyAsusState, k: &Kit) -> El {
         DiagSubTab::OledDisplayTests => render_oled_tests(s, k),
         DiagSubTab::Updates => render_updates(s, k),
     };
+    let body = crate::ui::theme::swap_view(format!("diag-tab-{}", s.diag_tab.index()), body);
 
     col()
         .w_full()

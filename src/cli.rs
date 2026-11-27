@@ -26,6 +26,11 @@ pub struct CliArgs {
     #[arg(long)]
     pub screenshot: Option<PathBuf>,
 
+    /// Pass the remaining arguments to Rune's headless tooling (debug builds), e.g.
+    /// `--rune --script nav.json --frames 30 --out frames/`
+    #[arg(long = "rune", num_args = 1.., allow_hyphen_values = true, value_name = "RUNE_ARGS")]
+    pub rune_args: Vec<String>,
+
     #[command(subcommand)]
     pub command: Option<CliCommand>,
 }
