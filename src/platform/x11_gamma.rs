@@ -69,6 +69,40 @@ fn open_crtc(output: &str) -> Result<Target<impl Connection>, String> {
     Err(format!("RandR output {output} has no active CRTC"))
 }
 
+/// The primary RandR output's name (e.g. `eDP`), else the first output driving a CRTC.
+///
+/// Uses `GetScreenResourcesCurrent`, which never re-probes outputs. A plain `xrandr` call
+/// (`--listmonitors`, `--props`, ...) re-reads every panel's EDID over DDC/AUX; done every few
+/// seconds by the dimming guard, that was ~2 probes a second on the eDP panel.
+pub fn primary_output_name() -> Option<String> {
+    let (conn, screen_num) = x11rb::connect(None).ok()?;
+    let root = conn.setup().roots[screen_num].root;
+    let res = conn.randr_get_screen_resources_current(root).ok()?.reply().ok()?;
+    let primary = conn
+        .randr_get_output_primary(root)
+        .ok()
+        .and_then(|c| c.reply().ok())
+        .map_or(0, |r| r.output);
+    let mut first_active = None;
+    for out in &res.outputs {
+        let Ok(Ok(info)) = conn
+            .randr_get_output_info(*out, res.config_timestamp)
+            .map(|c| c.reply())
+        else {
+            continue;
+        };
+        if info.crtc == 0 {
+            continue;
+        }
+        let name = String::from_utf8_lossy(&info.name).into_owned();
+        if *out == primary {
+            return Some(name);
+        }
+        first_active.get_or_insert(name);
+    }
+    first_active
+}
+
 fn ramps(size: usize, rgb: (f32, f32, f32), brightness: f32) -> [Vec<u16>; 3] {
     [
         ramp(size, rgb.0, brightness),

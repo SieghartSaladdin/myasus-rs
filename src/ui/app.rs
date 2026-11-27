@@ -86,7 +86,6 @@ pub struct MyAsusState {
     pub screensaver: ScreensaverSession,
 
     pub status_banner: Option<(String, bool)>,
-    pub last_shift_clock: f64,
     pub current_clock: f64,
     pub udev_writable: bool,
 }
@@ -164,7 +163,6 @@ impl MyAsusState {
             interactive_diag: InteractiveTestState::default(),
             screensaver: ScreensaverSession::default(),
             status_banner: None,
-            last_shift_clock: 0.0,
             current_clock: 0.0,
             udev_writable,
         }
@@ -275,7 +273,6 @@ impl MyAsusState {
 
 fn poll_app(s: &mut MyAsusState, clock: f64, tx: &mut Tx) -> bool {
     s.current_clock = clock;
-    let mut changed = false;
 
     // Animate the OLED dark screensaver / Pixel Refresh calibration at the display's own
     // refresh rate (60/90/120/144/165 Hz...). `wake_after(ZERO)` asks Rune for the next
@@ -294,9 +291,6 @@ fn poll_app(s: &mut MyAsusState, clock: f64, tx: &mut Tx) -> bool {
         }
         if s.screensaver.active {
             tx.wake_after(Duration::ZERO);
-        } else {
-            // Calibration just finished: resume the normal telemetry schedule.
-            tx.request_poll();
         }
         return true;
     }
@@ -305,18 +299,10 @@ fn poll_app(s: &mut MyAsusState, clock: f64, tx: &mut Tx) -> bool {
     // UI thread never blocks on sysinfo / `ip` / `iwgetid` / `hostname` and animations keep
     // hitting every vsync.
 
-    // Periodic Pixel Shift while app is open
-    if s.display_prefs.pixel_shift_enabled {
-        let shift_secs = (s.display_prefs.pixel_shift_interval_mins.max(1) as f64) * 60.0;
-        if clock > 0.0 && clock - s.last_shift_clock >= shift_secs {
-            s.last_shift_clock = clock;
-            s.shift_pixels_next();
-            changed = true;
-        }
-        tx.wake_at(s.last_shift_clock + shift_secs);
-    }
+    // Automatic Pixel Shift runs only in `oled-daemon`. The app used to run its own orbit too,
+    // so the two shifted independently and each shift (a CRTC modeset) blanked the screen.
 
-    changed
+    false
 }
 
 /// One telemetry sample, gathered off the UI thread and applied in one step.

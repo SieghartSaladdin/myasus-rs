@@ -54,8 +54,16 @@ fn gsettings_set(schema: &str, key: &str, value: &str) -> bool {
 }
 
 /// Detects the primary active X11/RandR display output (e.g. `eDP`, `eDP-1`).
+///
+/// Never re-probes outputs: a plain `xrandr` query makes the driver re-read the panel's EDID.
 pub fn primary_xrandr_output() -> Option<String> {
-    let out = Command::new("xrandr").arg("--listmonitors").output().ok()?;
+    if let Some(name) = crate::platform::x11_gamma::primary_output_name() {
+        return Some(name);
+    }
+    let out = Command::new("xrandr")
+        .args(["--current", "--listmonitors"])
+        .output()
+        .ok()?;
     if !out.status.success() {
         return None;
     }
@@ -74,7 +82,7 @@ pub fn detect_oled_panel_info() -> OledPanelInfo {
     let mut resolution = String::new();
     let mut external_rog_monitor = None;
 
-    if let Ok(out) = Command::new("xrandr").arg("--props").output() {
+    if let Ok(out) = Command::new("xrandr").args(["--current", "--props"]).output() {
         let text = String::from_utf8_lossy(&out.stdout);
         let mut current_output = String::new();
         let mut in_edid = false;
@@ -438,12 +446,12 @@ pub fn apply_linux_pixel_shift(
     let (dx, dy) = pixel_shift_offset(step, strength);
     let status = if dx == 0 && dy == 0 {
         Command::new("xrandr")
-            .args(["--output", &output_name, "--transform", "none"])
+            .args(["--current", "--output", &output_name, "--transform", "none"])
             .status()
     } else {
         let matrix = format!("1,0,{dx},0,1,{dy},0,0,1");
         Command::new("xrandr")
-            .args(["--output", &output_name, "--transform", &matrix])
+            .args(["--current", "--output", &output_name, "--transform", &matrix])
             .status()
     };
 
@@ -466,7 +474,7 @@ pub fn reset_linux_pixel_shift() -> Result<String, String> {
         return Ok("Pixel Shift centered (0, 0)".to_string());
     };
     let ok = Command::new("xrandr")
-        .args(["--output", &output_name, "--transform", "none"])
+        .args(["--current", "--output", &output_name, "--transform", "none"])
         .status()
         .map(|s| s.success())
         .unwrap_or(false);
@@ -635,6 +643,7 @@ pub fn apply_linux_display_pipeline(prefs: &DisplayPrefs) -> Result<String, Stri
     }
     let ok = Command::new("xrandr")
         .args([
+            "--current",
             "--output",
             &output_name,
             "--gamma",

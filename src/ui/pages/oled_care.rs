@@ -569,8 +569,8 @@ fn render_dimming_and_care_pro(s: &MyAsusState, k: &Kit) -> El {
 fn render_pixel_refresh_and_shift(s: &MyAsusState, k: &Kit) -> El {
     let p = &s.display_prefs;
     let interval_idx = match p.pixel_shift_interval_mins {
-        0..=3 => 0,
-        4..=7 => 1,
+        0..=44 => 0,
+        45..=90 => 1,
         _ => 2,
     };
 
@@ -593,7 +593,7 @@ fn render_pixel_refresh_and_shift(s: &MyAsusState, k: &Kit) -> El {
             )),
         toggle_row(
             "Enable Automatic Pixel Shift",
-            "Runs periodically in this app and in the background login daemon (`myasus-rs oled-daemon`).",
+            "Run by the background login daemon (`myasus-rs oled-daemon`). Each shift blanks the screen for about a second on X11, so it runs rarely.",
             p.pixel_shift_enabled,
             |s: &mut MyAsusState| {
                 let next = !s.display_prefs.pixel_shift_enabled;
@@ -650,13 +650,13 @@ fn render_pixel_refresh_and_shift(s: &MyAsusState, k: &Kit) -> El {
                             .color(text_muted()),
                     )
                     .child(
-                        SegmentedControl::new(&["2 min", "5 min", "10 min"], Some(interval_idx))
+                        SegmentedControl::new(&["30 min", "60 min", "2 hours"], Some(interval_idx))
                             .width(Some(210.0))
                             .on_pick(|s: &mut MyAsusState, idx, _| {
                                 s.display_prefs.pixel_shift_interval_mins = match idx {
-                                    0 => 2,
-                                    1 => 5,
-                                    _ => 10,
+                                    0 => 30,
+                                    1 => 60,
+                                    _ => 120,
                                 };
                                 let _ = s.display_prefs.save();
                                 s.status_banner = Some((

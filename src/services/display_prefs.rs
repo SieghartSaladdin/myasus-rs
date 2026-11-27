@@ -19,6 +19,11 @@ pub const DEFAULT_PWM_FLOOR: u8 = 60;
 pub const UNIFORM_CAP_MIN: u8 = 55;
 pub const UNIFORM_CAP_MAX: u8 = 95;
 pub const DEFAULT_UNIFORM_CAP: u8 = 75;
+/// Each X11 Pixel Shift (`xrandr --transform`) forces a CRTC modeset that blanks the panel for
+/// about a second on AMDGPU (and Cinnamon answers with a second one), so it runs rarely.
+pub const PIXEL_SHIFT_MINS_MIN: u32 = 30;
+pub const PIXEL_SHIFT_MINS_MAX: u32 = 240;
+pub const DEFAULT_PIXEL_SHIFT_MINS: u32 = 60;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum PixelShiftStrength {
@@ -151,7 +156,7 @@ impl Default for DisplayPrefs {
             eye_care_level: 2,
             pixel_shift_enabled: true,
             pixel_shift_strength: PixelShiftStrength::Standard,
-            pixel_shift_interval_mins: 5,
+            pixel_shift_interval_mins: DEFAULT_PIXEL_SHIFT_MINS,
             screensaver_style: ScreensaverStyle::AsusOrbit,
             screensaver_idle_mins: 15,
             away_dim_enabled: true,
@@ -184,7 +189,13 @@ impl DisplayPrefs {
             .uniform_brightness_cap
             .clamp(UNIFORM_CAP_MIN, UNIFORM_CAP_MAX);
         self.eye_care_level = self.eye_care_level.clamp(1, 5);
-        self.pixel_shift_interval_mins = self.pixel_shift_interval_mins.clamp(1, 60);
+        // Intervals under 30 min come from the old 2/5/10 min choices, which blanked the screen
+        // every few minutes: move them to the new default rather than to the 30 min floor.
+        self.pixel_shift_interval_mins = if self.pixel_shift_interval_mins < PIXEL_SHIFT_MINS_MIN {
+            DEFAULT_PIXEL_SHIFT_MINS
+        } else {
+            self.pixel_shift_interval_mins.min(PIXEL_SHIFT_MINS_MAX)
+        };
         self.away_dim_secs = self.away_dim_secs.clamp(15, 600);
         self.away_dim_level = self.away_dim_level.clamp(20, 70);
     }
@@ -267,6 +278,19 @@ impl DisplayPrefs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn moves_old_short_pixel_shift_intervals_to_the_hourly_default() {
+        let mut prefs = DisplayPrefs { pixel_shift_interval_mins: 5, ..Default::default() };
+        prefs.clamp_in_place();
+        assert_eq!(prefs.pixel_shift_interval_mins, 60);
+        prefs.pixel_shift_interval_mins = 120;
+        prefs.clamp_in_place();
+        assert_eq!(prefs.pixel_shift_interval_mins, 120);
+        prefs.pixel_shift_interval_mins = 999;
+        prefs.clamp_in_place();
+        assert_eq!(prefs.pixel_shift_interval_mins, PIXEL_SHIFT_MINS_MAX);
+    }
 
     #[test]
     fn splits_low_brightness_into_pwm_safe_floor_and_gamma_dimming() {
